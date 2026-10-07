@@ -1,4 +1,4 @@
-# Pickleball Level Up (v8): club rating system
+# Pickleball Level Up (v1): club rating system
 
 Roles: player, certified_coach, admin. Server-side XP/Elo, ranked open-play queue, daily quests,
 coach-verified homework and skill badges, tier gates. Data lives in Netlify Blobs.
