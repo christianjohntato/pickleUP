@@ -262,14 +262,22 @@ This currently supports GCash and other e-wallet workflows without requiring the
 
 ### 📱 QR Check-In
 
-Facilities can use rotating QR codes for player check-in.
+Check-in is per event, not per facility. There is no front-desk tablet.
 
-Players can:
+**Open play**
 
-* Scan the QR code using their camera
-* Enter the code manually when necessary
+* The host opens their open play and taps **Show check-in code**. A QR code and an 8-character code appear on the host's phone and change every minute.
+* Players who joined scan it with their camera (or type the code). Only players who **paid and checked in** are put into games; the host is always checked in.
+* If a phone can't scan, the host can tap **Check in** next to a player.
+* When someone is done playing, the host taps **Check out** next to them. Their waiting games are removed, their finished games still count, and they can scan the code again to come back. (A player on a court can be checked out once that game is scored or removed.)
+* Check-in opens 2 hours before the start. Open plays created before this feature keep the old paid-only rule.
 
-Administrators can configure facility and geofence settings.
+**Coach bookings**
+
+* The coach taps **Check-in code** next to a session (Coach tab). Booked players scan it (or type it) and are checked in for +40 XP, the same result as the coach tapping **Check in**. The coach's manual **Check in** button still works as a fallback.
+* Check-in opens 2 hours before the session and closes 4 hours after it starts.
+
+Codes are tied to one open play or session, stay valid for about 3 minutes, and a player is locked out for 15 minutes after 10 wrong codes.
 
 ---
 

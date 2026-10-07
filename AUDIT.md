@@ -46,7 +46,7 @@ Also: coaches check students in with **one tap** from the upcoming list (no rety
 
 ## Worth considering next (not changed)
 
-- **GPS check-in can be faked** (coordinates come from the phone). QR mode, which already exists, is the strong option; consider making it the default.
+- **GPS check-in can be faked** (coordinates come from the phone). The old facility-wide QR mode was replaced by per-open-play and per-session QR codes (v8.9).
 - **Daily quests are self-reported**, so they're free XP up to the tier ceiling. Fine as a habit nudge; a coach-verified variant would make them count more.
 - **Single-blob lists** (`m`, `q`, `bk`, `ss`, `hw`) are the right call at club scale. Past a few hundred active players, moving bookings and homework to per-record keys would cut contention.
 - **Matchmaking on polls** adds a few storage reads per queued player every 15 s. If storage costs ever matter, run it only for the longest-waiting player.
