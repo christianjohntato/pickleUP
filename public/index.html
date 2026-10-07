@@ -336,7 +336,7 @@ body.busy .app [data-a]:not([data-a=tab]):not([data-a=logout]):not([data-a=qrOff
 <div class="app" id="app"></div>
 <script>
 const $=s=>document.querySelector(s);
-let T=localStorage.getItem("pt"),S=null,tab="play",toast="",toastBad=false,authMode="login",GID=null,gsiOn=false,gpend=null,qrText="",qrCode="",showQr=false,calDay=null;
+let T=localStorage.getItem("pt"),S=null,tab="play",toast="",toastBad=false,authMode="login",GID=(()=>{try{return localStorage.getItem("gid")}catch(_){return null}})(),gtry=false,gsiOn=false,gpend=null,qrText="",qrCode="",showQr=false,calDay=null;
 let ov=null,cv=null,OD={},C={},hostForm=false,lastOd=null,sending=false;// ov = open play being viewed, cv = friend whose chat is open, OD = open play details, C = chat messages
 let cl=null,CD={},CB=null,CBs=0,GV={},FLY=new Set(),pv="players",clubForm=false,clubEdit=null,hostClub=null,lastClub=null,GC={};// cl = club being viewed, CD = club details, CB = club ranking, pv = Players tab view
 let view=null,P={},PL=null,pq0="";// view = player id when a profile is open; P = profile cache; PL = directory results
@@ -427,26 +427,29 @@ async function auth(){
 }
 // Sign in with Google: the button comes from Google's script; a new Google account then picks a username and goes on to the survey
 function gInit(){
-  if(T||GID!==null)return;GID="";
+  if(T||gtry)return;gtry=true;
   api("config").then(j=>{
-    if(!j.google)return;GID=j.google;draw();
+    GID=j.google||"";try{localStorage.setItem("gid",GID)}catch(_){}
+    if(GID)authMode="login";draw();
+    if(!GID)return;
     const sc=document.createElement("script");sc.src="https://accounts.google.com/gsi/client";sc.async=true;
     sc.onload=()=>{try{google.accounts.id.initialize({client_id:GID,callback:r=>gLogin(r.credential),ux_mode:"popup"});gsiOn=true;draw()}catch(_){}};
     document.head.appendChild(sc);
-  }).catch(()=>{});
+  }).catch(()=>{gtry=false});
 }
 function gMount(){const b=document.getElementById("gbtn");if(!b||!gsiOn)return;
   try{google.accounts.id.renderButton(b,{type:"standard",theme:"outline",size:"large",text:"continue_with",shape:"pill",width:Math.max(200,Math.min(400,b.clientWidth||280))})}catch(_){}}
-async function gLogin(cred,name){
+async function gLogin(cred,name,pw){
   if(busy)return;setBusy(true);showLoader(name?"Creating your account":"Signing in with Google");
   try{
-    const j=await api("google",name?{credential:cred,username:name}:{credential:cred});
+    const j=await api("google",name?{credential:cred,username:name,password:pw}:{credential:cred});
     if(j.needName){gpend={cred,email:j.email,suggest:j.suggest}}
     else{T=j.token;localStorage.setItem("pt",T);gpend=null;await load()}
   }catch(e){
     const m=e.message;
     if(name&&m==="taken")say("That name is taken. Try another.",1);
     else if(name&&m==="invalid")say("Use 3-20 characters: letters, numbers, . _ -",1);
+    else if(name&&m==="badpw")say("Use a password of 6 or more characters.",1);
     else{gpend=null;say(/Too many|disabled|offline|reach|took too long|not set up|unavailable/.test(m)?m:"Google sign-in failed. Try again.",1)}
     draw()
   }
@@ -528,7 +531,7 @@ const A={
   logout:async()=>{if(busy)return;setBusy(true);showLoader("Logging out");await new Promise(r=>setTimeout(r,900));
     T=null;S=null;P={};CD={};GC={};CB=null;cl=null;clubEdit=null;PL=null;view=null;showQr=false;calDay=null;tab="play";localStorage.removeItem("pt");draw();scrollTo(0,0);await hideLoader(0);setBusy(false)},auth,
   mode:()=>{authMode=authMode==="login"?"reg":"login";draw()},
-  gname:()=>{if(gpend)gLogin(gpend.cred,v("gu").trim())},gcancel:()=>{gpend=null;draw()},
+  gname:()=>{if(!gpend)return;const p=v("gp");if(p.length<6){say("Use a password of 6 or more characters.",1);return draw()}gLogin(gpend.cred,v("gu").trim(),p)},gcancel:()=>{gpend=null;draw()},
   prof:x=>{if(x===S.me.id){view=null;tab="me"}else view=x;draw();scrollTo(0,0)},
   back:()=>{if(view)view=null;else if(ov||cv){ov=null;cv=null}else{cl=null;clubEdit=null}draw()},
   hideGuide:()=>{try{localStorage.setItem("gd"+S.me.id,"1")}catch(_){}draw()},
@@ -576,18 +579,19 @@ let sT;document.addEventListener("input",e=>{if(e.target.id==="sa"||e.target.id=
 const opts=(l,f)=>l.map(f).join("");
 const ask=m=>!busy&&confirm(m);
 function gName(){return `<div class="welcome"><div class="hero">${COURT}<h1 class="logo"><img src="logo.png" alt="PickleUP!" width="320" height="320"></h1><p>Almost there!</p></div>
-<div class="side"><div class="sheet"><h2>Choose your username</h2><p class="sub">Signed in with Google as <b>${esc(gpend.email)}</b>. Pick the name other players will see. Your email stays private.</p>
+<div class="side"><div class="sheet"><h2>Choose your username</h2><p class="sub">Signed in with Google as <b>${esc(gpend.email)}</b>. Pick the name other players will see, and a password. You can then log in with Google or with your username and password. Your email stays private.</p>
 <input class="w100" id="gu" placeholder="Username" value="${esc(gpend.suggest||"")}" maxlength="20" autocapitalize="none" autocomplete="username"><p class="m">3-20 characters: letters, numbers, . _ -</p>
+<input class="w100" id="gp" type="password" placeholder="Password (6+ characters)" autocomplete="new-password">
 <button class="btn big" data-a="gname">Continue</button><button class="btn g" data-a="gcancel">Use a different account</button></div></div></div>`}
 function login(){if(gpend)return gName();return `<div class="welcome"><div class="hero">${COURT}<h1 class="logo"><img src="logo.png" alt="PickleUP!" width="320" height="320"></h1><p>Reclub, PickleQ and Much More in one webapp!</p></div>
 <div class="side"><div class="sheet"><h2>How it works</h2><ol class="steps">
 <li><b>Join an open play</b> and pay the host.</li>
 <li><b>Play your games.</b> The app sets the courts and the queue.</li>
 <li><b>Rank up.</b> Ranked sessions update your rating.</li></ol></div>
-<div class="sheet"><h2>${authMode==="reg"?"Create your player account":"Log in"}</h2>
-<input class="w100" id="u" placeholder="Username" autocapitalize="none" autocomplete="username"><input class="w100" id="p" type="password" placeholder="Password" autocomplete="${authMode==="reg"?"new-password":"current-password"}">
-<button class="btn big" data-a="auth">${authMode==="reg"?"Create account":"Log in"}</button>
-<button class="btn g" data-a="mode">${authMode==="reg"?"I already have an account":"New player? Create an account"}</button>${GID?`<div class="or"><span>or</span></div><div id="gbtn" class="gb"></div>`:""}</div></div></div>`}
+<div class="sheet"><h2>${!GID&&authMode==="reg"?"Create your player account":"Log in"}</h2>
+<input class="w100" id="u" placeholder="Username" autocapitalize="none" autocomplete="username"><input class="w100" id="p" type="password" placeholder="Password" autocomplete="${!GID&&authMode==="reg"?"new-password":"current-password"}">
+<button class="btn big" data-a="auth">${!GID&&authMode==="reg"?"Create account":"Log in"}</button>
+${GID?`<div class="or"><span>or</span></div><div id="gbtn" class="gb"></div><p class="m" style="text-align:center;margin:8px 0 0">New player? Continue with Google to create your account.</p>`:`<button class="btn g" data-a="mode">${authMode==="reg"?"I already have an account":"New player? Create an account"}</button>`}</div></div></div>`}
 
 // rating hero, shared by Home, Me and other players' profiles
 function hero(p,{self,back}={}){
@@ -934,7 +938,8 @@ function me(){
   ${u.sk?`<div class="sheet"><h2>Skill Trait Gram</h2>${radar(u.sk.v)}<p class="m" style="text-align:center">Self-assessed ${when(u.sk.t)}, scale 1 to 5.${u.role==="player"&&Date.now()-u.sk.t>14*864e5?` <a href="#" data-a="rt" onclick="return false">Retake</a>`:""}</p></div>`:""}
   <div class="sheet"><h2>How your rating works</h2><p class="m">Before each game we predict the score from both teams' ratings. Your rating moves by how much you beat or miss that prediction, so a narrow win against weaker players can lower it and a close loss to stronger players can raise it. New players start NR and become rated after about three games against rated players. Reliability grows when you play often with different partners and opponents.</p></div>
   ${u.role==="player"?`<div class="sheet"><h2>Coach invite</h2><p class="sub">Got a token from the admin? Redeem it to become a certified coach.</p><input id="tk" placeholder="Invite token"><button class="btn g" data-a="redeem">Redeem</button></div>`:""}
-  ${S.me.ge?`<div class="sheet"><h2>Sign-in</h2><p class="m">You sign in with Google (${esc(S.me.ge)}). There is no password to manage.</p></div>`:`<div class="sheet"><h2>Password</h2><input id="op" type="password" placeholder="Current password" autocomplete="current-password"><input id="np" type="password" placeholder="New password (6+ characters)" autocomplete="new-password"><button class="btn g" data-a="pw">Change password</button></div>`}
+  ${S.me.ge?`<div class="sheet"><h2>Sign-in</h2><p class="m">Linked to Google (${esc(S.me.ge)}). ${S.me.hp?"You can log in with Google, or with your username and password.":"Set a password to also log in with your username."}</p></div>`:""}
+  <div class="sheet"><h2>Password</h2>${S.me.hp?`<input id="op" type="password" placeholder="Current password" autocomplete="current-password">`:""}<input id="np" type="password" placeholder="${S.me.hp?"New password (6+ characters)":"Password (6+ characters)"}" autocomplete="new-password"><button class="btn g" data-a="pw">${S.me.hp?"Change password":"Set password"}</button></div>
   <div class="sheet"><button class="btn w" data-a="logout">Log out</button></div>`;
 }
 function cal(){
@@ -1021,7 +1026,7 @@ document.addEventListener("pointerdown",e=>{if(e.target.closest(".sendb"))e.prev
 document.addEventListener("scroll",e=>{const t=e.target;if(t&&t.classList&&t.classList.contains("msgs")&&nearEnd(t)){const j=document.getElementById(t.id+"j");if(j)j.hidden=true}},true);
 if(window.visualViewport){const vv=window.visualViewport,fit=()=>{document.documentElement.style.setProperty("--vh",vv.height+"px");if(document.body.classList.contains("chatting")){scrollTo(0,0);const m=document.getElementById("cm");if(m)toEnd(m)}};vv.addEventListener("resize",fit);vv.addEventListener("scroll",()=>{if(document.body.classList.contains("chatting"))scrollTo(0,0)});fit()}
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&T&&S){if((e.target.id==="cx"||e.target.id==="gx")){if(e.shiftKey||e.isComposing)return;e.preventDefault();e.target.id==="cx"?sendMsg():gcSend()}else if(e.target.id==="fn")A.fAddName()}
-  if(e.key==="Enter"&&(!T||!S)&&(e.target.id==="u"||e.target.id==="p"))auth();if(e.key==="Enter"&&gpend&&e.target.id==="gu")A.gname()});
+  if(e.key==="Enter"&&(!T||!S)&&(e.target.id==="u"||e.target.id==="p"))auth();if(e.key==="Enter"&&gpend&&(e.target.id==="gu"||e.target.id==="gp"))A.gname()});
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");
 </script>
 </body>
