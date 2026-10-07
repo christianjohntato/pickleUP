@@ -343,6 +343,48 @@ body.busy .app [data-a]:not([data-a=tab]):not([data-a=logout]):not([data-a=qrOff
   body.nav .app{max-width:1120px}
   body.nav{padding-left:248px}body.nav .tabs{width:248px}body.nav .toast{left:calc(50% + 124px)}
 }
+
+/* ---- v8.12 roadmap P0: dashboard, cards, mobile nav, desktop layout ---- */
+.greet h1{font:700 clamp(26px,6vw,34px)/1.1 var(--disp);margin:18px var(--gap) 0}
+.pbar{height:10px;border-radius:999px;background:var(--soft);overflow:hidden;margin:6px 0}.pbar i{display:block;height:100%;border-radius:999px;background:var(--gold);transition:width .6s ease}.pbar.sm{height:6px}
+.lvl{display:flex;justify-content:space-between;align-items:baseline;font:700 15px var(--disp);letter-spacing:.04em;margin-top:10px}.lvl span{font:600 14px var(--body);color:var(--muted)}
+.stat3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat3 button{background:var(--soft);border:0;border-radius:14px;padding:12px 8px;text-align:center;display:flex;flex-direction:column;gap:2px;min-height:88px;justify-content:center}
+.stat3 span{font:600 13px var(--disp);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.stat3 b{font:700 clamp(26px,7vw,34px)/1 var(--disp)}.stat3 b.nr{color:var(--muted)}.stat3 i{font-style:normal;font-size:12px;color:var(--muted)}
+.yph{margin:10px 0 0}
+.opc{display:flex;flex-direction:column;gap:6px;padding:4px 0}.opc+.opc{border-top:1px solid var(--line);padding-top:14px;margin-top:10px}
+.opc-h{display:flex;justify-content:space-between;align-items:center;gap:8px}.opc-h b{font:700 clamp(20px,5vw,24px)/1.1 var(--disp);text-transform:uppercase;letter-spacing:.02em}
+.opc-v{font:700 15px var(--disp);color:var(--gt);letter-spacing:.06em;text-transform:uppercase}.opc-m{display:flex;gap:14px;font-weight:600}
+.opc-s{display:flex;align-items:center;gap:8px;font-weight:600}.dot{width:10px;height:10px;border-radius:50%;background:var(--up)}.dot.o{background:#E58A00}.dot.r{background:var(--down)}
+.opc .btn.big{width:100%;margin:6px 0 0;min-height:48px}.chip.live{background:#FDE3E3;color:var(--down)}.chip.near{background:#FFE9C2;color:#8A5200}.chip.full{background:var(--soft);color:var(--muted)}
+.empty-s{text-align:center;padding:10px 0}.empty-s b{font:700 20px var(--disp);letter-spacing:.04em}.empty-s p{color:var(--muted);margin:6px 0 10px}
+.qi{font-size:22px;width:30px;text-align:center}
+.rkme{display:flex;align-items:center;gap:14px}.rkme b{font:700 44px/1 var(--disp);color:var(--gt)}.rkme div{flex:1}.rkme span{display:block;font:700 20px var(--disp)}.rkme i{font-style:normal;color:var(--muted);font-size:14px}.rkme em{font:700 28px var(--disp);font-style:normal}
+.yourpos{border-color:var(--gold);background:#FFFBEA}
+.quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px;padding:12px}
+.quick button{position:relative;background:var(--soft);border:0;border-radius:14px;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:600 14px var(--disp)}.quick svg{width:22px;height:22px}
+.dcols{display:flex;flex-direction:column}.dcols>div{display:contents}
+.o1{order:1}.o2{order:2}.o3{order:3}.o4{order:4}.o5{order:5}
+.mnav{display:none}
+.psh{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center}
+.psc{width:100%;max-width:560px;background:var(--card);border-radius:20px 20px 0 0;padding:16px var(--pad) calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
+.psc b{font:700 20px var(--disp);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
+.psc button{background:var(--soft);border:0;border-radius:14px;min-height:54px;text-align:left;padding:0 16px;font-weight:600;font-size:17px}
+@media(max-width:1023px){
+  .tabs{display:none}
+  .mnav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:grid;grid-template-columns:repeat(5,1fr);align-items:end;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .mnav[hidden],body.chatting .mnav{display:none}
+  .mnav button{position:relative;background:none;border:0;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:600 13px var(--disp);color:var(--muted)}
+  .mnav button.on{color:var(--text)}.mnav svg{width:24px;height:24px}.mnav button.on svg{stroke-width:2.4}
+  .mnav .fab{width:56px;height:56px;min-height:56px;border-radius:50%;background:var(--btn);color:var(--btn-text);margin:0 auto 12px;box-shadow:0 4px 14px rgba(0,0,0,.25);justify-content:center}.mnav .fab svg{width:28px;height:28px}
+  .mnav .bdg{position:absolute;top:6px;right:calc(50% - 22px)}
+}
+@media(min-width:1024px){
+  body.nav.dashb .app{max-width:1120px}
+  .dcols{display:grid;grid-template-columns:1.2fr 1fr;align-items:start;gap:0 4px}.dcols>div{display:block}
+  .psh{align-items:center}.psc{border-radius:20px;max-width:380px}
+}
+@media(prefers-reduced-motion:reduce){.pbar i{transition:none}}
 </style>
 </head>
 <body>
@@ -350,7 +392,7 @@ body.busy .app [data-a]:not([data-a=tab]):not([data-a=logout]):not([data-a=qrOff
 <script>
 const $=s=>document.querySelector(s);
 let T=localStorage.getItem("pt"),S=null,tab="play",toast="",toastBad=false,authMode="login",GID=(()=>{try{return localStorage.getItem("gid")}catch(_){return null}})(),gtry=false,gsiOn=false,gpend=null,qrText="",qrCode="",qrFor=null,calDay=null;
-let ov=null,cv=null,OD={},C={},hostForm=false,lastOd=null,sending=false;// ov = open play being viewed, cv = friend whose chat is open, OD = open play details, C = chat messages
+let plusOn=false,ov=null,cv=null,OD={},C={},hostForm=false,lastOd=null,sending=false;// ov = open play being viewed, cv = friend whose chat is open, OD = open play details, C = chat messages
 let cl=null,CD={},CB=null,CBs=0,GV={},FLY=new Set(),pv="players",clubForm=false,clubEdit=null,hostClub=null,lastClub=null,GC={};// cl = club being viewed, CD = club details, CB = club ranking, pv = Players tab view
 let view=null,P={},PL=null,pq0="";// view = player id when a profile is open; P = profile cache; PL = directory results
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -497,7 +539,7 @@ const A={
   fAdd:x=>run("fAdd",{id:x}),fAccept:x=>run("fAccept",{id:x}),
   fRemove:x=>{const f=[...S.friends.f,...S.friends.i,...S.friends.o].find(z=>z.id===x);ask(S.friends.f.some(z=>z.id===x)?`Remove ${f?f.n:"this friend"}? Your chat history with them is deleted.`:"Remove this request?")&&run("fRemove",{id:x}).then(()=>{if(cv===x){cv=null;draw()}})},
   chat:x=>{tab="friends";cv=x;view=null;ov=null;draw();scrollTo(0,0);chatLoad("f:"+x)},send:()=>sendMsg(),jump:x=>{const e=document.getElementById(x);if(e){toEnd(e,true);const j=document.getElementById(x+"j");if(j)j.hidden=true}},retry:x=>chatRetry(x),
-  hf:()=>{hostForm=!hostForm;draw()},hostNow:()=>{hostForm=true;A.tab("open")},hostFor:x=>{hostClub=x;hostForm=true;A.tab("open")},
+  hf:()=>{hostForm=!hostForm;draw()},hostNow:()=>{plusOn=false;hostForm=true;A.tab("open")},hostFor:x=>{hostClub=x;hostForm=true;A.tab("open")},
   pv:x=>{pv=x;CBs=1;draw()},goClubs:()=>{CBs=1;A.tab("club")},clubForm:()=>{clubForm=!clubForm;draw()},
   club:x=>{cl=x;clubForm=false;clubEdit=null;view=null;ov=null;cv=null;draw();scrollTo(0,0)},
   clubCreate:()=>{lastClub=null;run("clubCreate",{name:v("cb_n"),loc:v("cb_l"),desc:v("cb_d"),rules:v("cb_r"),ap:v("cb_j")==="1",ho:v("cb_h")==="1"}).then(()=>{if(!toastBad&&lastClub){clubForm=false;cl=lastClub;draw();scrollTo(0,0)}})},
@@ -555,7 +597,8 @@ const A={
   prof:x=>{if(x===S.me.id){view=null;tab="me"}else view=x;draw();scrollTo(0,0)},
   back:()=>{if(view)view=null;else if(ov||cv){ov=null;cv=null}else{cl=null;clubEdit=null}draw()},
   hideGuide:()=>{try{localStorage.setItem("gd"+S.me.id,"1")}catch(_){}draw()},
-  tab:x=>{tab=x;view=null;ov=null;cv=null;cl=null;clubEdit=null;if(x==="club")CBs=1;draw();scrollTo(0,0);if(x==="admin")load();if(x==="players")searchPlayers(v("ps")||"")}
+  plus:()=>{plusOn=!plusOn;draw()},recMatch:()=>{plusOn=false;const o=S.ops.find(e=>(e.joined||e.mine)&&e.st==="live");if(S.match)A.tab("play");else if(o){view=null;cv=null;cl=null;ov=o.id;draw();scrollTo(0,0);opLoad(o.id)}else{A.tab("open");say("Scores are recorded inside a live open play. Join or host one.")}},
+  tab:x=>{plusOn=false;tab=x;view=null;ov=null;cv=null;cl=null;clubEdit=null;if(x==="club")CBs=1;draw();scrollTo(0,0);if(x==="admin")load();if(x==="players")searchPlayers(v("ps")||"")}
 };
 // ---- profile picture: choose a photo, move and zoom it in a circle, save a 256 px JPEG ----
 function pickAvatar(){let f=document.getElementById("avf");
@@ -662,20 +705,56 @@ function histRows(h){
 }
 function teamBlock(names,rs,mine){return`<div class="team${mine?" mine":""}">${names.map((n,i)=>`<div class="pl">${av(n)}<div><b>${esc(n)}</b><span>${fmtR(rs?rs[i]:null)}</span></div></div>`).join("")}</div>`}
 
-function play(){
-  const m=S.match,nb=S.bookings.filter(b=>b.status==="booked"&&b.ts>Date.now()-36e5&&b.ts-Date.now()<864e5).sort((a,b)=>a.ts-b.ts)[0];
-  let h=hero({...S.me,n:S.me.username,t:S.me.tier,coach:S.me.role==="certified_coach"},{self:1});
-  if(m)h+=matchCard(m); // a ranked match that was already running before open play sessions: keep its score flow
-  h+=homeOpen()+homeFriends()+guide();
-  if(nb)h+=`<div class="sheet"><h2>Coming up</h2><p>${esc(nb.title)} with ${esc(nb.cn)}, ${when(nb.ts)}</p><p class="m">When you arrive, scan the QR code on your coach's phone to check in.</p></div>`;
-  if(S.me.last)h+=`<div class="sheet"><h2>Last result</h2><p class="delta">${esc(S.me.last)}</p></div>`;
-  return h;
+// ---- Home dashboard (roadmap P0): rating, level/XP, next game, quests, leaderboard ----
+const LVL=200,MED=["🥇","🥈","🥉"],QI=["🏓","🎯","🦵","💪","🔥"];
+const lvlOf=x=>({n:Math.floor(x/LVL)+1,cur:x%LVL});
+const greet=()=>{const h=new Date().getHours();return h<12?"Good morning":h<18?"Good afternoon":"Good evening"};
+const monthDelta=h=>+(h||[]).filter(x=>x.d!=null&&x.t>Date.now()-30*864e5).reduce((a,x)=>a+x.d,0).toFixed(3);
+const myRank=()=>{const rows=(S.board||[]).filter(u=>u.r!=null),i=rows.findIndex(u=>u.id===S.me.id);return i<0?null:{i:i+1,n:rows.length}};
+function xpBar(x){const L=lvlOf(x|0);return `<div class="lvl"><b>LEVEL ${L.n}</b><span>${(x|0).toLocaleString()} / ${(L.n*LVL).toLocaleString()} XP</span></div><div class="pbar"><i style="width:${L.cur/LVL*100}%"></i></div><p class="m">${LVL-L.cur} XP to Level ${L.n+1}</p>`}
+function statTrio(){
+  const u=S.me,g=(u.w|0)+(u.l|0),nr=u.r==null,L=lvlOf(u.xp|0),mo=monthDelta(u.hist),left=Math.max(1,Math.ceil(3-(u.ip||0)));
+  const rsub=nr?`Est. ${fmtR(u.pr)}`:mo?`${mo>0?"↑":"↓"} ${signed(mo)} this month`:esc(levelOf(u.r));
+  const hint=nr?`Play ${left} more rated game${left===1?"":"s"} to establish your official rating.`:`${esc(levelOf(u.r))}${u.rel?`, ${u.rel|0}% reliable`:""}.`;
+  return `<div class="sheet yp"><h2>Your PickleUp</h2><div class="stat3"><button data-a="tab" data-v="me"><span>Rating</span><b class="${nr?"nr":""}">${nr?"NR":fmtR(u.r)}</b><i>${rsub}</i></button><button data-a="tab" data-v="quests"><span>Level ${L.n}</span><b>${(u.xp|0).toLocaleString()} XP</b><i>${LVL-L.cur} to next</i></button><button data-a="tab" data-v="me"><span>Matches</span><b>${g}</b><i>${u.w|0}W · ${u.l|0}L</i></button></div><p class="m yph">${hint}</p>${xpBar(u.xp)}</div>`;
 }
-// Home: the open plays you're in first, then what's live or starting soon
-function homeOpen(){
-  const o=S.ops.filter(e=>e.st==="live"||e.st==="open").sort((a,b)=>((b.joined||b.mine)?1:0)-((a.joined||a.mine)?1:0)||(b.st==="live")-(a.st==="live")||a.ts-b.ts).slice(0,3);
-  return `<div class="sheet"><h2>Open play</h2><p class="sub">${o.length?"Join a session and pay the host. The app sets up the games and the queue.":"Nothing scheduled yet. Host one and invite your friends."}</p>${opts(o,opRow)}
+// Next game: whichever is soonest of your open plays and your next booked lesson; else the soonest open session
+function nextGame(){
+  const now=Date.now(),mine=S.ops.filter(e=>(e.mine||e.joined)&&(e.st==="live"||e.st==="open")).sort((a,b)=>a.ts-b.ts)[0],
+    nb=S.bookings.filter(b=>b.status==="booked"&&b.ts>now-36e5&&b.ts-now<864e5).sort((a,b)=>a.ts-b.ts)[0];
+  if(nb&&(!mine||nb.ts<mine.ts))return {id:null,html:`<div class="sheet"><h2>Your next game</h2><div class="opc"><div class="opc-h"><b>${esc(nb.title)}</b><span class="chip on">Lesson</span></div><div class="opc-v">Coach ${esc(nb.cn)}</div><div class="opc-m"><span>${when(nb.ts)}</span></div><p class="m">When you arrive, scan the QR code on your coach's phone to check in.</p><button class="btn big ball" data-a="tab" data-v="cal">View booking →</button></div></div>`};
+  const o=mine||S.ops.filter(e=>e.st==="open"&&e.n<e.cap).sort((a,b)=>a.ts-b.ts)[0];
+  if(o)return {id:o.id,html:`<div class="sheet"><h2>${mine?"Your next game":"Open play for you"}</h2>${opCard(o)}</div>`};
+  return {id:null,html:`<div class="sheet"><h2>Your next game</h2><div class="empty-s"><b>🏓 FIND YOUR NEXT GAME</b><p>Join an open play or host one for your club, and you'll see it here.</p><button class="btn ball" data-a="tab" data-v="open">Find open plays</button></div></div>`};
+}
+function homeOpen(skip){
+  const o=S.ops.filter(e=>(e.st==="live"||e.st==="open")&&e.id!==skip).sort((a,b)=>((b.joined||b.mine)?1:0)-((a.joined||a.mine)?1:0)||(b.st==="live")-(a.st==="live")||a.ts-b.ts).slice(0,3);
+  return `<div class="sheet"><h2>Open play</h2><p class="sub">${o.length?"Join a session and pay the host. The app sets up the games and the queue.":"No other sessions right now. Host one and invite your friends."}</p>${opts(o,e=>opCard(e,1))}
   <button class="btn" data-a="tab" data-v="open">${o.length?"See all open plays":"Find open plays"}</button><button class="btn ball" data-a="hostNow">Host an open play</button></div>`;
+}
+function opCard(e,compact){
+  const left=Math.max(0,e.cap-e.n),pct=e.cap?e.n/e.cap:0,full=left===0,near=!full&&pct>=.75,
+    st=e.st==="live"?`<span class="chip live">● Live</span>`:full?`<span class="chip full">Full</span>`:near?`<span class="chip near">Almost full</span>`:`<span class="chip on">Open</span>`,
+    tag=e.mine?"Hosting":e.joined?(e.paid?"You're in":"Joined"):"";
+  return `<div class="opc${compact?" cmp":""}"><div class="opc-h"><b>🏓 ${esc(e.title)}</b>${st}</div><div class="opc-v">${esc(e.cn||e.loc)}</div>
+  <div class="opc-m"><span>${when(e.ts)}</span><span>${money(e.price)}</span></div>
+  <div class="opc-s"><span class="dot ${full?"r":near?"o":"g"}"></span>${e.n} / ${e.cap} players${full?"":` · ${left} spot${left===1?"":"s"} left`}</div><div class="pbar sm"><i style="width:${Math.min(100,pct*100)}%"></i></div>
+  <div class="m">${e.mode==="ranked"?"Ranked":"Casual"} · ${esc(e.loc)} · Hosted by ${esc(e.hn)}</div>
+  <button class="btn big ${tag?"":"ball"}" data-a="ov" data-v="${e.id}">${e.mine?"Manage":tag?"View game":full?"View open play":"Join open play"} →</button>${tag?`<span class="tag">${tag}</span>`:""}</div>`;
+}
+function questBar(){const d=S.today.filter(q=>q.done).length,t=S.today.length;return `<div class="lvl"><b>${d} / ${t} completed</b></div><div class="pbar"><i style="width:${t?d/t*100:0}%"></i></div>`}
+function questRows(){return opts(S.today,(q,i)=>`<div class="row"><span class="qi">${QI[i%5]}</span><div class="g1">${esc(q.t)}<div class="m">+${q.xp} XP</div></div>${q.done?`<span class="tag">✓ Complete</span>`:`<button class="btn" data-a="claim" data-v="${q.id}">Mark complete</button>`}</div>`)}
+function homeQuests(){return `<div class="sheet"><h2>🔥 Daily quests</h2>${questBar()}${questRows()}</div>`}
+function yourPos(){const r=myRank();return r?`<div class="sheet yourpos"><h2>Your position</h2><div class="rkme"><b>#${r.i}</b><div><span>${esc(S.me.username)}</span><i>of ${r.n} rated</i></div><em>${fmtR(S.me.r)}</em></div></div>`:`<div class="sheet yourpos"><h2>Your position</h2><p class="sub">Get your official rating to join the ranking.</p></div>`}
+function homeBoard(){const top=(S.board||[]).filter(u=>u.r!=null).slice(0,3);
+  return `<div class="sheet"><h2>Leaderboard</h2>${(()=>{const r=myRank();return r?`<p class="sub">You are <b>#${r.i}</b> of ${r.n} rated players.</p>`:`<p class="sub">Get rated to join the ranking.</p>`})()}${opts(top,(u,i)=>`<div class="row"><span class="rk top">${MED[i]}</span>${av(u.n)}<div class="g1"><span class="n">${esc(u.n)}</span></div><div class="rv">${fmtR(u.r)}</div></div>`)}<button class="btn" data-a="tab" data-v="players">Full leaderboard</button></div>`}
+function quick(){const r=S.me.role,l=[["players","Leaderboard"],["friends","Friends"],["cal","Book"],["quests","Quests"]];if(r!=="player")l.push(["coach","Coach"]);if(r==="admin")l.push(["admin","Admin"]);
+  return `<div class="sheet quick">${l.map(([k,n])=>`<button data-a="tab" data-v="${k}">${ic(k)}<span>${n}</span>${k==="friends"&&S.unread?`<i class="bdg">${S.unread>9?"9+":S.unread}</i>`:""}</button>`).join("")}</div>`}
+function play(){
+  const m=S.match,ng=nextGame();
+  const top=`<div class="greet"><h1>${greet()}, ${esc(S.me.username)} 👋</h1></div>${statTrio()}${m?matchCard(m):""}`;
+  const ex=homeFriends()+guide()+(S.me.last?`<div class="sheet"><h2>Last result</h2><p class="delta">${esc(S.me.last)}</p></div>`:"");
+  return top+`<div class="dcols"><div><div class="o1">${ng.html}</div><div class="o4">${homeOpen(ng.id)}</div></div><div><div class="o2">${homeQuests()}</div><div class="o3">${homeBoard()}</div><div class="o5">${quick()}${ex}</div></div></div>`;
 }
 function homeFriends(){
   const n=S.unread|0,r=S.friends.i.length;
@@ -874,8 +953,8 @@ function playersList(){
   const list=PL||S.board.map(u=>({...u}));
   const q=v("ps");
   return `<div class="sheet flat" style="padding-top:14px"><h2>Leaderboard</h2><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="ps" type="search" placeholder="Search players by name" autocomplete="off"></div></div>
-  <div class="sheet"><h2>${q?"Results":"Player ranking"}</h2><p class="sub">${q?"Rated players first.":"Rated players by doubles rating. Tap anyone to see their profile."}</p>
-  ${list.length?opts(list,(u,i)=>`<button class="row tap" data-a="prof" data-v="${u.id}">${u.r!=null&&!q?`<span class="rk${i<3?" top":""}">${i+1}</span>`:""}${av(u.n)}<div class="g1"><span class="n">${esc(u.n)}${u.me?" (you)":""}</span><div class="m">${esc(levelOf(u.r))}, ${u.w|0}-${u.l|0}</div></div><div class="rv">${fmtR(u.r)}<span>${u.r==null?"provisional":(u.rel|0)+"% reliable"}</span></div></button>`):`<p class="empty">${q?"No players match that name.":"No rated players yet. Ratings appear after a few confirmed games."}</p>`}</div>`;
+  ${!q?yourPos():""}<div class="sheet"><h2>${q?"Results":"Player ranking"}</h2><p class="sub">${q?"Rated players first.":"Rated players by doubles rating. Tap anyone to see their profile."}</p>
+  ${list.length?opts(list,(u,i)=>`<button class="row tap" data-a="prof" data-v="${u.id}">${u.r!=null&&!q?`<span class="rk${i<3?" top":""}">${i<3?MED[i]:i+1}</span>`:""}${av(u.n)}<div class="g1"><span class="n">${esc(u.n)}${u.me?" (you)":""}</span><div class="m">${esc(levelOf(u.r))}, ${u.w|0}-${u.l|0}</div></div><div class="rv">${fmtR(u.r)}<span>${u.r==null?"provisional":(u.rel|0)+"% reliable"}</span></div></button>`):`<p class="empty">${q?"No players match that name.":"No rated players yet. Ratings appear after a few confirmed games."}</p>`}</div>`;
 }
 function profileView(id){
   const p=P[id];
@@ -927,7 +1006,7 @@ function openTab(){
   <p class="m">Ranked needs at least 8 paid players, and ratings update for every game when you end the session. Players pay you directly and send you their reference number. Mark them paid and they join the games. Free open play: set the price to 0.</p>
   <button class="btn big" data-a="opCreate"${hc.length?"":" disabled"}>Publish open play</button><button class="btn g" data-a="hf">Cancel</button>`;
   return `<div class="sheet flat" style="padding-top:14px"><h2>Open play</h2><p class="sub">Host a session or join one. Everyone who has paid is shuffled into games and a queue, and the ranking updates as scores come in.</p>${hostForm?form:`<button class="btn big ball" data-a="hf">Host an open play</button>`}</div>
-  <div class="sheet"><h2>Upcoming</h2>${up.length?opts(up,opRow):`<p class="empty">No upcoming open plays. Host one and invite your friends.</p>`}</div>
+  <div class="sheet"><h2>Upcoming</h2>${up.length?opts(up,e=>opCard(e)):`<p class="empty">No upcoming open plays. Host one and invite your friends.</p>`}</div>
   <div class="sheet"><h2>Cancelled</h2>${can.length?opts(can,opRow):`<p class="empty">No cancelled open plays.</p>`}</div>
   <div class="sheet"><h2>Ended</h2>${end.length?opts(end,opRow):`<p class="empty">No ended open plays.</p>`}</div>`;
 }
@@ -970,8 +1049,8 @@ function opView(id){
   return head+`<div class="who"><div><b>${esc(e.title)}</b><div class="lv">${esc(e.loc)}</div></div></div></div>${info}${hostQr}${(e.isHost||mineP)?gcBox("op",e.id,"Everyone in this open play can read and write here. Use it to coordinate courts, timing and payments."):""}${host}${courts}${rank}${results}${ppl}`;
 }
 function quests(){
-  return `<div class="sheet"><h2>Daily home quests</h2><p class="sub">Drills you do on your own. Claim each once a day for XP.</p>${opts(S.today,q=>`<div class="row"><div class="g1">${esc(q.t)}<div class="m">+${q.xp} XP</div></div>
-  ${q.done?`<span class="tag">Done</span>`:`<button class="btn" data-a="claim" data-v="${q.id}">Claim</button>`}</div>`)}</div>
+  return `<div class="sheet"><h2>🔥 Daily quests</h2><p class="sub">Drills you do on your own. Mark each complete once a day for XP.</p>${questBar()}${questRows()}</div>
+  <div class="sheet">${xpBar(S.me.xp)}</div>
   <div class="sheet"><h2>Coach homework</h2><p class="sub">Your coach approves these after checking your progress.</p>
   ${S.homework.length?opts(S.homework.slice().reverse().slice(0,15),h=>`<div class="row"><div class="g1">${esc(h.title)}<div class="m">From ${esc(h.cn)}, +${h.xp} XP</div></div><span class="tag">${h.status==="done"?"Approved":"Waiting for coach"}</span></div>`):`<p class="empty">No homework yet. Book a lesson and your coach can assign some.</p>`}</div>`;
 }
@@ -1054,9 +1133,12 @@ function draw(poll){
   const body=need?survey():view?profileView(view):ov?opView(ov):cl?clubView(cl):cv?chatView(cv):{play,players,open:openTab,club:clubTab,friends:friendsTab,quests,cal,me,coach,admin}[tab]();
   const ph=need||cv&&!view?"":`<header class="bar"><span class="brand"><img src="logo.png" alt="PickleUP!" width="46" height="46"></span>${r==="player"?"":`<span class="role">${r==="admin"?"Admin":"Coach"}</span>`}<div class="acts">${logoutBtn()}<button class="pf" data-a="tab" data-v="me" aria-label="My profile">${av(S.me.username)}</button></div></header>`;
   const warn=cv&&!view?"":S.me.defaultPw?`<div class="sheet note warn">Change the default admin password on the Me tab.</div>`:S.me.mustChange?`<div class="sheet note warn">You're using a temporary password. Set your own on the Me tab.</div>`:"";
-  document.body.classList.toggle("nav",!need);document.body.classList.toggle("chatting",!!(cv&&!view&&!need));
+  document.body.classList.toggle("nav",!need);document.body.classList.toggle("dashb",!need&&tab==="play"&&!view&&!ov&&!cl&&!cv);document.body.classList.toggle("chatting",!!(cv&&!view&&!need));
+  const mn=[["play","Home"],["open","Play"],null,["club","Clubs"],["me","Me"]],
+    mnav=`<nav class="mnav" aria-label="Main"${need?" hidden":""}>${mn.map(t=>t?`<button class="${t[0]===tab&&!view?"on":""}" data-a="tab" data-v="${t[0]}">${ic(t[0])}<span>${t[1]}</span>${t[0]==="me"&&S.unread?`<i class="bdg">${S.unread>9?"9+":S.unread}</i>`:""}</button>`:`<button class="fab" data-a="plus" aria-label="Create"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>`).join("")}</nav>`,
+    psh=plusOn&&!need?`<div class="psh" data-a="plus"><div class="psc" role="dialog" aria-label="Create" onclick="event.stopPropagation()"><b>Create</b><button data-a="hostNow">🏓 Host Open Play</button><button data-a="recMatch">📝 Record Match</button><button data-a="tab" data-v="friends">👥 Add Friend</button><button data-a="tab" data-v="cal">🎯 Book Training</button></div></div>`:"";
   el.innerHTML=`${ph}${warn}${body}
-  <nav class="tabs" aria-label="Sections"${need?" hidden":""}><div>${tabs.map(([k,n])=>`<button class="${k===tab&&!view?"on":""}"${k===tab?' aria-current="page"':""} data-a="tab" data-v="${k}">${ic(k)}${n}${k==="friends"&&S.unread?`<i class="bdg">${S.unread>9?"9+":S.unread}</i>`:""}</button>`).join("")}</div></nav>${tt}`;
+  <nav class="tabs" aria-label="Sections"${need?" hidden":""}><div>${tabs.map(([k,n])=>`<button class="${k===tab&&!view?"on":""}"${k===tab?' aria-current="page"':""} data-a="tab" data-v="${k}">${ic(k)}${n}${k==="friends"&&S.unread?`<i class="bdg">${S.unread>9?"9+":S.unread}</i>`:""}</button>`).join("")}</div></nav>${mnav}${psh}${tt}`;
   rest();if(document.getElementById("spv"))preview();{const cm=document.getElementById("cm")||document.getElementById("gm");if(cm){cm.scrollTop=msgTop===null||msgEnd?cm.scrollHeight:msgTop;cm.dataset.init=1;cm.dataset.n=cm.querySelectorAll(".mg").length;const t=document.getElementById(cm.id==="cm"?"cx":"gx");chatFit(t)}}
   // profiles (including your own match history on Me) load on demand and are refetched after any change
   const want=need?null:view||(tab==="me"?S.me.id:null);if(want&&!P[want])getProfile(want);
