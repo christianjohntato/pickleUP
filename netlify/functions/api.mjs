@@ -51,6 +51,10 @@ async function mutate(s, key, def, fn) {
   throw new Bad("Server busy, please try again", 503);
 }
 const mutU = (s, id, fn) => mutate(s, "u/" + id, null, u => { if (!u) throw new Bad("User not found", 404); norm(u); return fn(u); });
+// Check-in streak: consecutive days with a completed coach session. Stored as u.st = { n: count, d: last day number }.
+const streakNow = (u, tz) => (u.st && u.st.d >= dayN(tz) - 1 ? u.st.n | 0 : 0);
+const bumpStreak = (u, tz) => { const d = dayN(tz); if (u.st && u.st.d === d) return u.st.n; u.st = { n: u.st && u.st.d === d - 1 ? (u.st.n | 0) + 1 : 1, d, best: Math.max(u.st ? u.st.best | 0 : 0, u.st && u.st.d === d - 1 ? (u.st.n | 0) + 1 : 1) }; return u.st.n; };
+const giveXpStreak = async (s, id, n, tz) => { let k = 0; await mutate(s, "u/" + id, null, u => { if (!u) return SKIP; norm(u); addXp(u, n); k = bumpStreak(u, tz); }); return k; };
 const giveXp = (s, id, n) => mutate(s, "u/" + id, null, u => { if (!u) return SKIP; norm(u); addXp(u, n); });
 async function createUser(s, u) { // username claimed atomically
   await s.setJSON("u/" + u.id, u);
@@ -208,7 +212,7 @@ const todays = tz => {
   const d = dayN(tz), idx = POOL.map((_, i) => i);
   let r = (d * 2654435761) >>> 0;
   for (let i = idx.length - 1; i > 0; i--) { r = (Math.imul(r ^ (r >>> 15), 2246822507) + 0x6d2b79f5) >>> 0; const j = r % (i + 1); [idx[i], idx[j]] = [idx[j], idx[i]]; }
-  return idx.slice(0, 3).map(k => ({ id: "d" + d + "-" + k, t: POOL[k][0], xp: POOL[k][1] }));
+  return idx.slice(0, 3).map(k => ({ id: "d" + d + "-" + k, t: POOL[k][0].split(": ")[0], d: POOL[k][0].split(": ").slice(1).join(": "), xp: POOL[k][1] }));
 };
 
 // planFinish runs inside the match CAS (reads only); the winner of that CAS applies the result to each player with a per-user CAS,
@@ -385,11 +389,11 @@ function opRank(e) {
   return [...m.values()].filter(r => r.g || e.pl.some(x => x.id === r.id && x.paid && !x.left))
     .sort((a, b) => b.w - a.w || (b.pf - b.pa) - (a.pf - a.pa) || b.pf - a.pf || a.n.localeCompare(b.n));
 }
-const opLine = (e, me) => ({ id: e.id, club: e.club || null, cn: e.cn || "", mode: e.mode || "casual", title: e.title, loc: e.loc, ts: e.ts, dur: e.dur, price: e.price, cap: e.cap, n: e.pl.filter(x => !x.left).length, st: e.status, hn: e.hn,
+const opLine = (e, me) => ({ id: e.id, club: e.club || null, cn: e.cn || "", mode: e.mode || "casual", skill: e.skill || "All levels", title: e.title, loc: e.loc, ts: e.ts, dur: e.dur, price: e.price, cap: e.cap, n: e.pl.filter(x => !x.left).length, st: e.status, hn: e.hn,
   mine: e.host === me.id, joined: e.pl.some(x => x.id === me.id && !x.left), paid: e.pl.some(x => x.id === me.id && x.paid && !x.left) });
 function opDetail(e, me) {
   const host = e.host === me.id, joined = e.pl.some(x => x.id === me.id && !x.left), done = e.g.filter(g => g.st === "d");
-  return { id: e.id, club: e.club || null, cn: e.cn || "", mode: e.mode || "casual", applied: !!e.applied, title: e.title, desc: e.desc, loc: e.loc, ts: e.ts, dur: e.dur, price: e.price, pay: host || joined ? e.pay : "", cap: e.cap, courts: e.courts, rounds: e.rounds,
+  return { id: e.id, club: e.club || null, cn: e.cn || "", mode: e.mode || "casual", skill: e.skill || "All levels", applied: !!e.applied, title: e.title, desc: e.desc, loc: e.loc, ts: e.ts, dur: e.dur, price: e.price, pay: host || joined ? e.pay : "", cap: e.cap, courts: e.courts, rounds: e.rounds,
     st: e.status, host: e.host, hn: e.hn, isHost: host, joined, now: Date.now(), qr: !!e.qr,
     pl: e.pl.filter(x => !x.left || e.g.some(g => g.p.includes(x.id)) || (host && x.cr)).map(x => ({ id: x.id, n: x.n, paid: !!x.paid, here: here(e, x), out: !!x.out, left: !!x.left, cr: !!x.cr, me: x.id === me.id, ref: host || x.id === me.id ? x.ref || "" : "" })),
     g: [...e.g.filter(g => g.st !== "d"), ...done.slice(-30)].map(g => ({ id: g.id, n: g.n, p: g.p, c: g.court, st: g.st, sa: g.sa, sb: g.sb })),
@@ -410,11 +414,11 @@ async function mutOp(s, id, fn) {
 // Player index for the leaderboard and the Players directory: every active non-admin, rated first by rating.
 async function board(s, force) {
   const c = force ? null : await jget(s, "board", null);
-  if (c && c.v === 2 && Date.now() - c.t < 6e4) return c.rows;
+  if (c && c.v === 3 && Date.now() - c.t < 6e4) return c.rows;
   const rows = (await loadAll(s)).filter(u => u.role !== "admin" && !u.disabled)
-    .map(u => ({ id: u.id, n: u.username, r: rated(u) ? u.r : null, rel: reliability(u), x: u.xp, t: tierOf(u), w: u.w | 0, l: u.l | 0, c: u.role === "certified_coach" || undefined, a: u.av || undefined }))
+    .map(u => ({ id: u.id, n: u.username, r: rated(u) ? u.r : null, rel: reliability(u), x: u.xp, t: tierOf(u), w: u.w | 0, l: u.l | 0, c: u.role === "certified_coach" || undefined, a: u.av || undefined, la: u.la || 0 }))
     .sort((a, b) => (b.r ?? -1) - (a.r ?? -1) || a.n.localeCompare(b.n));
-  await s.setJSON("board", { v: 2, t: Date.now(), rows });
+  await s.setJSON("board", { v: 3, t: Date.now(), rows });
   return rows;
 }
 // Personal match log: one list per player under mh/<id>, written when an open play ends (casual and ranked alike),
@@ -506,7 +510,7 @@ async function snapshot(s, me, cfg, full, pre = {}) {
   const qf = q.filter(fresh), live = bk.filter(b => b.status !== "cancelled"), sm = new Map(ss.map(x => [x.id, x])), cn = new Map(co.map(c => [c.id, c.n])), cp = new Map(co.map(c => [c.id, c.pay]));
   const mm = ms.filter(m => m.p.includes(me.id) && m.status !== "done" && Date.now() - m.start < 3 * 36e5).pop();
   const out = {
-    me: pub(me), avs: Object.fromEntries(bd.filter(r => r.a).map(r => [r.n, r.a])), tiers: TIERS, badgeDefs: BADGES, today: todays(cfg.tz).map(x => ({ ...x, done: me.done.includes(x.id) })),
+    me: pub(me), avs: Object.fromEntries(bd.filter(r => r.a).map(r => [r.n, r.a])), tiers: TIERS, badgeDefs: BADGES, streak: streakNow(me, cfg.tz), bestStreak: me.st ? me.st.best | 0 : 0, today: todays(cfg.tz).map(x => ({ ...x, done: me.done.includes(x.id) })),
     checked: Date.now() - me.ci < 4 * 36e5, inQueue: qf.some(x => x.id === me.id), qSince: qf.find(x => x.id === me.id)?.t || null, mixAfter: MIX_AFTER,
     queue: TIERS.map((_, t) => qf.filter(x => x.tier === t).length),
     match: mm ? await (async () => {
@@ -531,7 +535,7 @@ async function snapshot(s, me, cfg, full, pre = {}) {
     bookings: await Promise.all(bk.filter(b => b.player === me.id).slice(-10).map(async b => ({ ...b, cn: await nm(b.coach), pay: cp.get(b.coach) || "", dur: b.dur || sm.get(b.sid)?.dur || 60, title: sm.get(b.sid)?.title || b.kind }))),
     homework: await Promise.all(hw.filter(h => h.student === me.id).slice(-15).map(async h => ({ ...h, cn: await nm(h.coach) }))),
     board: bd.filter(u => u.r != null).slice(0, 25).map(u => ({ ...u, me: u.id === me.id })),
-    friends: { f: fr.f.slice().sort((a, b) => (b.lm | 0) - (a.lm | 0) || a.n.localeCompare(b.n)), i: fr.i, o: fr.o }, unread: fr.f.reduce((t, x) => t + (x.un | 0), 0),
+    friends: { f: fr.f.map(x => ({ ...x, la: bd.find(r => r.id === x.id)?.la || 0 })).sort((a, b) => (b.lm | 0) - (a.lm | 0) || a.n.localeCompare(b.n)), i: fr.i, o: fr.o }, unread: fr.f.reduce((t, x) => t + (x.un | 0), 0),
     myClubs: cls.filter(c => isMember(c, me.id)).map(c => ({ ...clubRef(c), o: c.owner === me.id, h: canHost(c, me.id) })),
     ops: [
       ...ops.filter(OPLIVE).sort((a, b) => (b.status === "live") - (a.status === "live") || a.ts - b.ts).slice(0, 40),
@@ -652,6 +656,7 @@ async function handle(req, context) {
   const ok = async (msg, x) => J({ msg: msg || "", ...x, ...(await snapshot(s, a === "state" ? me : await getU(s, me.id), CFGW ? { ...DEF, ...(await jget(s, "cfg", {})) } : cfg, !!b.full)) });
 
   if (a === "state") {
+    if (!me.la || Date.now() - me.la > 12e4) { const t = Date.now(); await mutU(s, me.id, u => { u.la = t; }); me.la = t; } // last-active, written at most every 2 minutes
     // one-time backfill of the durable roster for coaches whose students predate v7.2
     if (me.role !== "player" && !me.stu) {
       const stu = [...new Set((await jget(s, "bk", [])).filter(x => x.coach === me.id && x.status === "attended").map(x => x.player))];
@@ -817,8 +822,8 @@ async function handle(req, context) {
       if (Date.now() < k.ts - 2 * 36e5 || Date.now() > k.ts + 4 * 36e5) throw new Bad("Check-in opens 2 hours before the session and closes 4 hours after it starts");
       k.status = "attended"; coachId = k.coach;
     });
-    await Promise.all([giveXp(s, me.id, 40), mutU(s, coachId, u => { u.stu = [...new Set([...(u.stu || []), me.id])].slice(-500); })]);
-    return ok("Checked in: +40 XP");
+    const [strk] = await Promise.all([giveXpStreak(s, me.id, 40, cfg.tz), mutU(s, coachId, u => { u.stu = [...new Set([...(u.stu || []), me.id])].slice(-500); })]);
+    return ok("✓ Session completed: +40 XP" + (strk > 1 ? ` · New streak: ${strk} days` : ""));
   }
   if (a === "cancel") {
     await mutate(s, "bk", [], bk => {
@@ -876,6 +881,24 @@ async function handle(req, context) {
     if (!ID.test(id)) return E("invalid");
     await unfriend(s, me.id, id); await s.delete(ck(me.id, id));
     return ok("Removed");
+  }
+  if (a === "fInvite") { // challenge a friend to a game, or invite them to an open play you host or joined: sent as a chat message
+    const id = String(b.id || ""), kind = String(b.kind || "");
+    if (!(await frOf(s, me.id)).f.some(x => x.id === id)) return E("You can only invite friends", 403);
+    let text;
+    if (kind === "challenge") text = `🏓 ${me.username} challenges you to a game! Reply here to pick a time and place.`;
+    else if (kind === "op") {
+      const e = (await jget(s, "op", [])).find(x => x.id === String(b.op || ""));
+      if (!e || !OPLIVE(e) || e.ts < Date.now() - 36e5 || !(e.host === me.id || e.pl.some(x => x.id === me.id && !x.left))) return E("Pick an upcoming open play you host or joined");
+      text = `🏓 ${me.username} invites you to "${e.title}" at ${e.loc || "the court"}, ${new Date(e.ts).toLocaleString("en-US", { timeZone: cfg.tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}. Find it under Open Play.`;
+    } else return E("invalid");
+    if (await locked(s, "ch:" + me.id, 30, 6e4)) return E("Slow down a little", 429);
+    await hit(s, "ch:" + me.id, 6e4);
+    const t = Date.now();
+    await mutate(s, ck(me.id, id), [], m => { m.push({ f: me.id, t, x: text }); if (m.length > 200) m.splice(0, m.length - 200); });
+    await Promise.all([mutF(s, id, r => { const x = r.f.find(z => z.id === me.id); if (!x) return SKIP; x.un = (x.un | 0) + 1; x.lm = t; }),
+      mutF(s, me.id, r => { const x = r.f.find(z => z.id === id); if (!x) return SKIP; x.lm = t; })]);
+    return ok(kind === "challenge" ? "Challenge sent" : "Invite sent");
   }
   if (a === "chat") return thread(s, me, String(b.id || ""), +b.since || 0);
   if (a === "send") {
@@ -1043,7 +1066,7 @@ async function handle(req, context) {
   if (a === "opCreate") {
     const title = String(b.title || "").trim().slice(0, 60), loc = String(b.loc || "").trim().slice(0, 100), desc = String(b.desc || "").trim().slice(0, 300), pay = String(b.pay || "").trim().slice(0, 120);
     const ts = +b.ts, dur = Math.min(480, Math.max(30, +b.dur | 0 || 120)), price = Math.round(+b.price * 100) || 0;
-    const cap = Math.min(60, Math.max(4, +b.cap | 0 || 16)), courts = Math.min(10, Math.max(1, +b.courts | 0 || 2)), rounds = Math.min(20, Math.max(1, +b.rounds | 0 || 3)), mode = b.mode === "ranked" ? "ranked" : "casual";
+    const cap = Math.min(60, Math.max(4, +b.cap | 0 || 16)), courts = Math.min(10, Math.max(1, +b.courts | 0 || 2)), rounds = Math.min(20, Math.max(1, +b.rounds | 0 || 3)), mode = b.mode === "ranked" ? "ranked" : "casual", skill = ["Beginner","Intermediate","Advanced"].includes(b.skill) ? b.skill : "All levels";
     if (title.length < 3 || loc.length < 3) return E("Add a title and a location");
     if (!(ts > Date.now() - 36e5 && ts < Date.now() + 60 * 864e5)) return E("Pick a start time within the next 60 days");
     if (!(price >= 0 && price <= 1e6)) return E("Check the price");
@@ -1060,7 +1083,7 @@ async function handle(req, context) {
       for (let i = list.length; i--;) if (!OPLIVE(list[i]) && !OPRECENT(list[i])) gone.add(list.splice(i, 1)[0].id); // housekeeping
       if (list.filter(e => e.host === me.id && OPLIVE(e)).length >= 5) throw new Bad("You already have 5 open plays running");
       if (list.length >= 300) throw new Bad("Too many open plays right now. Try again later.");
-      list.push(made = { id: uid(), host: me.id, hn: me.username, club: cl.id, cn: cl.name, mode, title, desc, loc, ts, dur, price, pay, cap, courts, rounds, status: "open", made: Date.now(), seq: 0,
+      list.push(made = { id: uid(), host: me.id, hn: me.username, club: cl.id, cn: cl.name, mode, skill, title, desc, loc, ts, dur, price, pay, cap, courts, rounds, status: "open", made: Date.now(), seq: 0,
         qr: true, pl: [{ id: me.id, n: me.username, j: Date.now(), paid: true, ci: Date.now() }], g: [] }); // the host plays too, doesn't pay and is there by definition
     });
     await Promise.all([...gone].map(i => s.delete("gc/op_" + i).catch(() => {})));
@@ -1304,8 +1327,8 @@ async function handle(req, context) {
         if (k.sid && (Date.now() < k.ts - 2 * 36e5 || Date.now() > k.ts + 4 * 36e5)) throw new Bad("Check-in opens 2 hours before the session and closes 4 hours after it starts");
         k.status = "attended"; pid = k.player;
       });
-      await Promise.all([giveXp(s, pid, 40), mutU(s, me.id, u => { u.stu = [...new Set([...(u.stu || []), pid])].slice(-500); })]);
-      return ok("Checked in: +40 XP to player");
+      const [strk2] = await Promise.all([giveXpStreak(s, pid, 40, cfg.tz), mutU(s, me.id, u => { u.stu = [...new Set([...(u.stu || []), pid])].slice(-500); })]);
+      return ok("Checked in: +40 XP to player" + (strk2 > 1 ? ` (${strk2}-day streak)` : ""));
     }
     if (a === "approve") {
       let h2;
