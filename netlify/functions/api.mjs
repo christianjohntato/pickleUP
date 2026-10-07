@@ -23,7 +23,7 @@ const MIX_AFTER = 10 * 6e4; // after this long without 4 in their own tier, play
 const DAILY = 150; // max XP per day from ranked matches
 const CAP = [{ xp: 1000 }, { xp: 3000 }, { xp: Infinity }];
 const CONFIRM = 15 * 6e4; // once both teams agree on a score, it auto-validates after this unless someone rejects
-const DEF = { courts: ["Court 1", "Court 2", "Court 3", "Court 4"], lat: null, lng: null, rad: 150, minMin: 5, tz: "UTC", qr: false, inv: [] };
+const DEF = { courts: ["Court 1", "Court 2", "Court 3", "Court 4"], lat: null, lng: null, rad: 150, minMin: 5, tz: "UTC", inv: [] };
 
 const jget = async (s, k, d) => (await s.get(k, { type: "json" })) ?? d;
 const getU = async (s, id) => norm(await jget(s, "u/" + id, null));
@@ -197,8 +197,11 @@ const dist = (a, b, c, d) => {
   const r = x => x * Math.PI / 180, h = Math.sin(r(c - a) / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(r(d - b) / 2) ** 2;
   return 12742000 * Math.asin(Math.sqrt(h));
 };
-const qrAt = async (s, w) => sign(await secret(s), "qr:" + w).replace(/[^A-Za-z0-9]/g, "").slice(0, 8).toUpperCase();
-const qrOk = async (s, c) => { const w = Math.floor(Date.now() / 6e4); c = c.trim().toUpperCase(); for (let i = 0; i < 3; i++) if (same(await qrAt(s, w - i), c)) return true; return false; };
+// Check-in codes belong to one event: "op:<open play id>" or "bk:<coach session id>". The code changes every minute and stays valid
+// for 3 minutes, so a screenshot is useless an hour later but someone walking up to the host still has time to scan.
+const qrNow = () => Math.floor(Date.now() / 6e4);
+const qrAt = async (s, scope, w) => sign(await secret(s), "qr:" + scope + ":" + w).replace(/[^A-Za-z0-9]/g, "").slice(0, 8).toUpperCase();
+const qrOk = async (s, scope, c) => { const w = qrNow(); c = String(c || "").trim().toUpperCase(); for (let i = 0; i < 3; i++) if (same(await qrAt(s, scope, w - i), c)) return true; return false; };
 const dayN = tz => { try { return Math.floor(Date.parse(new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date(Date.now())) + "T00:00:00Z") / 864e5); } catch { return Math.floor(Date.now() / 864e5); } };
 // Three distinct drills per day, picked by a day-seeded shuffle so the mix changes daily (same for everyone in the club).
 const todays = tz => {
@@ -342,7 +345,9 @@ async function thread(s, me, id, since) {
 const OPLIVE = e => (e.status === "open" || e.status === "live") && e.ts + e.dur * 6e4 + 6 * 36e5 > Date.now();
 const OPRECENT = e => (e.status === "ended" || e.status === "cancelled") && (e.ended || e.ts) > Date.now() - 3 * 864e5;
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = randomInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const inPlay = e => e.pl.filter(x => x.paid && !x.left);
+// Who gets games: paid players who also scanned in. Open plays made before check-in existed (no e.qr) keep the old paid-only rule.
+const here = (e, x) => !e.qr || x.id === e.host || !!x.ci;
+const inPlay = e => e.pl.filter(x => x.paid && !x.left && here(e, x));
 // Top up the queue until every paid player has e.rounds games. Fewest games first, ties broken at random, teams split at random.
 function opFill(e) {
   const ps = inPlay(e).map(x => x.id);
@@ -385,8 +390,8 @@ const opLine = (e, me) => ({ id: e.id, club: e.club || null, cn: e.cn || "", mod
 function opDetail(e, me) {
   const host = e.host === me.id, joined = e.pl.some(x => x.id === me.id && !x.left), done = e.g.filter(g => g.st === "d");
   return { id: e.id, club: e.club || null, cn: e.cn || "", mode: e.mode || "casual", applied: !!e.applied, title: e.title, desc: e.desc, loc: e.loc, ts: e.ts, dur: e.dur, price: e.price, pay: host || joined ? e.pay : "", cap: e.cap, courts: e.courts, rounds: e.rounds,
-    st: e.status, host: e.host, hn: e.hn, isHost: host, joined, now: Date.now(),
-    pl: e.pl.filter(x => !x.left || e.g.some(g => g.p.includes(x.id))).map(x => ({ id: x.id, n: x.n, paid: !!x.paid, left: !!x.left, me: x.id === me.id, ref: host || x.id === me.id ? x.ref || "" : "" })),
+    st: e.status, host: e.host, hn: e.hn, isHost: host, joined, now: Date.now(), qr: !!e.qr,
+    pl: e.pl.filter(x => !x.left || e.g.some(g => g.p.includes(x.id)) || (host && x.cr)).map(x => ({ id: x.id, n: x.n, paid: !!x.paid, here: here(e, x), out: !!x.out, left: !!x.left, cr: !!x.cr, me: x.id === me.id, ref: host || x.id === me.id ? x.ref || "" : "" })),
     g: [...e.g.filter(g => g.st !== "d"), ...done.slice(-30)].map(g => ({ id: g.id, n: g.n, p: g.p, c: g.court, st: g.st, sa: g.sa, sb: g.sb })),
     total: e.g.length, finished: done.length, rank: opRank(e) };
 }
@@ -446,7 +451,7 @@ async function profile(s, id, self) {
   const cls = cl.filter(c => isMember(c, u.id)).map(clubRef), ids = [...new Set(hs.flatMap(h => [h.pt, ...h.op]))], known = new Map(rows.map(r => [r.id, r.n]));
   // one cached board read covers most names; only players missing from it (disabled, brand new) cost a user read
   const names = new Map(await Promise.all(ids.map(async i => [i, known.get(i) || (await getU(s, i))?.username || "Former player"])));
-  return { id: u.id, n: u.username, a: u.av || undefined, r: rated(u) ? u.r : null, pr: rated(u) ? null : rtg(u), ip: u.ip || 0, rel: reliability(u), w: u.w | 0, l: u.l | 0,
+  return { id: u.id, n: u.username, a: u.av || undefined, cv: u.cv || undefined, r: rated(u) ? u.r : null, pr: rated(u) ? null : rtg(u), ip: u.ip || 0, rel: reliability(u), w: u.w | 0, l: u.l | 0,
     t: tierOf(u), badges: u.badges, coach: u.role === "certified_coach", src: u.src || null, since: u.created, sk: u.sk || null, xp: u.xp,
     clubs: cls,
     hist: hs.map(h => ({ t: h.t, s: h.s, d: h.d, w: h.w, nr: !!h.nr, ex: h.ex, k: h.k, ot: h.ot, pt: names.get(h.pt), op: h.op.map(i => names.get(i)) })) };
@@ -490,7 +495,7 @@ async function clubDetail(s, me, id) {
   if (!c) throw new Bad("Club not found", 404);
   const st = clubStats(c, rows);
   const mgr = c.owner === me.id || me.role === "admin";
-  return { id: c.id, n: c.name, d: c.desc, rules: c.rules || "", loc: c.loc || "", ap: !!c.ap, ho: !!c.ho, canHost: canHost(c, me.id), on: c.on, owner: c.owner, isOwner: c.owner === me.id, mgr, joined: isMember(c, me.id),
+  return { id: c.id, n: c.name, cv: c.cv || undefined, d: c.desc, rules: c.rules || "", loc: c.loc || "", ap: !!c.ap, ho: !!c.ho, canHost: canHost(c, me.id), on: c.on, owner: c.owner, isOwner: c.owner === me.id, mgr, joined: isMember(c, me.id),
     requested: (c.rq || []).some(x => x.id === me.id), rq: mgr ? (c.rq || []).map(x => ({ id: x.id, n: x.n, at: x.at })) : [], made: c.made, m: st.n, rm: st.rn, avg: st.avg,
     mem: st.act.map(r => ({ id: r.id, n: r.n, r: r.r, rel: r.rel, w: r.w, l: r.l, c: !!r.c, o: r.id === c.owner })).sort((a, b) => (b.r ?? -1) - (a.r ?? -1) || a.n.localeCompare(b.n)),
     ops: ops.filter(e => e.club === id && OPLIVE(e)).sort((a, b) => a.ts - b.ts).map(e => opLine(e, me)) };
@@ -501,7 +506,7 @@ async function snapshot(s, me, cfg, full, pre = {}) {
   const qf = q.filter(fresh), live = bk.filter(b => b.status !== "cancelled"), sm = new Map(ss.map(x => [x.id, x])), cn = new Map(co.map(c => [c.id, c.n])), cp = new Map(co.map(c => [c.id, c.pay]));
   const mm = ms.filter(m => m.p.includes(me.id) && m.status !== "done" && Date.now() - m.start < 3 * 36e5).pop();
   const out = {
-    me: pub(me), avs: Object.fromEntries(bd.filter(r => r.a).map(r => [r.n, r.a])), qr: !!cfg.qr, tiers: TIERS, badgeDefs: BADGES, today: todays(cfg.tz).map(x => ({ ...x, done: me.done.includes(x.id) })),
+    me: pub(me), avs: Object.fromEntries(bd.filter(r => r.a).map(r => [r.n, r.a])), tiers: TIERS, badgeDefs: BADGES, today: todays(cfg.tz).map(x => ({ ...x, done: me.done.includes(x.id) })),
     checked: Date.now() - me.ci < 4 * 36e5, inQueue: qf.some(x => x.id === me.id), qSince: qf.find(x => x.id === me.id)?.t || null, mixAfter: MIX_AFTER,
     queue: TIERS.map((_, t) => qf.filter(x => x.tier === t).length),
     match: mm ? await (async () => {
@@ -563,9 +568,19 @@ const goodStr = x => typeof x === "string" && TOK.test(x);
 const int = (x, a, b) => Number.isInteger(x) && x >= a && x <= b;
 
 const AVRE = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+=*)$/;
+const COVMAX = 300000; // cover photos are wide (about 1200x480) so they get a bigger cap than profile pictures
 async function handle(req, context) {
   if (req.method === "GET") { // profile photo: /api?avatar=<username>&v=<version>; the version makes it safe to cache for a year
-    const n = new URL(req.url).searchParams.get("avatar");
+    const q = new URL(req.url).searchParams, n = q.get("avatar");
+    if (!n && (q.get("cover") || q.get("clubcover"))) { // cover photos: /api?cover=<username>&v=<version> or /api?clubcover=<club id>&v=<version>
+      const s = getStore({ name: "the-system", consistency: "strong" });
+      let key = null;
+      if (q.get("cover")) { const u = await byName(s, q.get("cover")); if (u && u.cv && !u.disabled) key = "cv/" + u.id; }
+      else if (ID.test(q.get("clubcover"))) { const c = (await jget(s, "cl", [])).find(x => x.id === q.get("clubcover")); if (c && c.cv) key = "cvc/" + c.id; }
+      const d = key ? await s.get(key, { type: "text" }) : null, m = d && AVRE.exec(d);
+      if (!m) return new Response("Not found", { status: 404, headers: { "cache-control": "public, max-age=60" } });
+      return new Response(Buffer.from(m[2], "base64"), { headers: { "content-type": m[1], "cache-control": "public, max-age=31536000, immutable", "x-content-type-options": "nosniff" } });
+    }
     if (!n) return E("POST only", 405);
     const s = getStore({ name: "the-system", consistency: "strong" }), u = await byName(s, n);
     const d = u && u.av && !u.disabled ? await s.get("av/" + u.id, { type: "text" }) : null, m = d && AVRE.exec(d);
@@ -687,6 +702,20 @@ async function handle(req, context) {
     await board(s, true).catch(() => {});
     return ok("Profile picture removed");
   }
+  if (a === "setCover") { // any signed-in user (player, coach or admin): client sends a wide JPEG (about 1200x480) as a data URL
+    const img = String(b.img || "");
+    if (img.length > COVMAX || !AVRE.test(img)) return E("Choose a JPEG, PNG or WebP photo");
+    if (await locked(s, "cv:" + me.id, 12, 36e5)) return E("Too many photo changes. Try again later.", 429);
+    await hit(s, "cv:" + me.id, 36e5);
+    await s.set("cv/" + me.id, img);
+    await mutU(s, me.id, u => { u.cv = Date.now(); });
+    return ok("Cover photo updated");
+  }
+  if (a === "removeCover") {
+    await mutU(s, me.id, u => { if (!u.cv) return SKIP; delete u.cv; });
+    await s.delete("cv/" + me.id).catch(() => {});
+    return ok("Cover photo removed");
+  }
   if (a === "changePw") {
     const np = String(b.newPw || ""), k = "u:" + me.username.toLowerCase();
     if (await locked(s, k, 8, 9e5)) return E("Too many attempts", 429);
@@ -699,11 +728,7 @@ async function handle(req, context) {
 
   // ---- Player: check-in, queue, scores
   if (a === "checkin") {
-    if (cfg.qr) {
-      const k = "c:" + me.id;
-      if (await locked(s, k, 10, 9e5)) return E("Too many wrong codes. Try again later.", 429);
-      if (!(await qrOk(s, String(b.code || "")))) { await hit(s, k, 9e5); return E("Invalid or expired code. Use the screen at the facility."); }
-    } else if (cfg.lat != null && cfg.lng != null) {
+    if (cfg.lat != null && cfg.lng != null) {
       if (typeof b.lat !== "number" || typeof b.lng !== "number") return E("Location required to check in");
       if (dist(cfg.lat, cfg.lng, b.lat, b.lng) > cfg.rad) return E("You are not at the facility");
     }
@@ -776,7 +801,24 @@ async function handle(req, context) {
       bk.push({ id: uid(), sid: x.id, coach: x.coach, player: me.id, kind: x.kind, ts: x.ts, dur: x.dur || 60, made: Date.now(), price: x.price, paid: false, status: "booked" });
       trim(bk, 1000, v => (v.status === "booked" && v.ts > Date.now() - 864e5) || (v.price && v.status !== "cancelled"));
     });
-    return ok("Booked. Show your booking code to the coach.");
+    return ok("Booked. Scan the coach's check-in code when you arrive.");
+  }
+  if (a === "bkCheckin") { // the player scans the coach's code; same result as the coach tapping Check in (+40 XP)
+    const sid = String(b.sid || "");
+    if (!ID.test(sid)) return E("invalid");
+    const lk = "bc:" + me.id;
+    if (await locked(s, lk, 10, 9e5)) return E("Too many wrong codes. Try again later.", 429);
+    if (!(await qrOk(s, "bk:" + sid, b.code))) { await hit(s, lk, 9e5); return E("Invalid or expired code. Scan the code on your coach's phone."); }
+    let coachId;
+    await mutate(s, "bk", [], bk => {
+      const k = bk.find(v => v.sid === sid && v.player === me.id && v.status !== "cancelled");
+      if (!k) throw new Bad("You have no booking for this session");
+      if (k.status === "attended") throw new Bad("You are already checked in");
+      if (Date.now() < k.ts - 2 * 36e5 || Date.now() > k.ts + 4 * 36e5) throw new Bad("Check-in opens 2 hours before the session and closes 4 hours after it starts");
+      k.status = "attended"; coachId = k.coach;
+    });
+    await Promise.all([giveXp(s, me.id, 40), mutU(s, coachId, u => { u.stu = [...new Set([...(u.stu || []), me.id])].slice(-500); })]);
+    return ok("Checked in: +40 XP");
   }
   if (a === "cancel") {
     await mutate(s, "bk", [], bk => {
@@ -962,6 +1004,27 @@ async function handle(req, context) {
       });
       await mutate(s, "op", [], list => { let ch = false; list.forEach(e => { if (e.club === id && e.cn !== name) { e.cn = name; ch = true; } }); return ch ? undefined : SKIP; });
       msg = "Club saved";
+    } else if (a === "clubSetCover") {
+      const img = String(b.img || "");
+      if (img.length > COVMAX || !AVRE.test(img)) return E("Choose a JPEG, PNG or WebP photo");
+      const c0 = (await jget(s, "cl", [])).find(x => x.id === id);
+      if (!c0) return E("Club not found", 404);
+      if (c0.owner !== me.id && !admin) return E("Only the club owner can do that", 403);
+      if (await locked(s, "cvc:" + id, 12, 36e5)) return E("Too many photo changes. Try again later.", 429);
+      await hit(s, "cvc:" + id, 36e5);
+      await s.set("cvc/" + id, img);
+      await mutate(s, "cl", [], list => { const c = list.find(x => x.id === id); if (!c) throw new Bad("Club not found", 404); c.cv = Date.now(); });
+      msg = "Club cover photo updated";
+    } else if (a === "clubRemoveCover") {
+      await mutate(s, "cl", [], list => {
+        const c = list.find(x => x.id === id);
+        if (!c) throw new Bad("Club not found", 404);
+        if (c.owner !== me.id && !admin) throw new Bad("Only the club owner can do that", 403);
+        if (!c.cv) return SKIP;
+        delete c.cv;
+      });
+      await s.delete("cvc/" + id).catch(() => {});
+      msg = "Club cover photo removed";
     } else if (a === "clubDelete") {
       if ((await jget(s, "op", [])).some(e => e.club === id && OPLIVE(e))) return E("This club still has open plays running. End or cancel them first.");
       await mutate(s, "cl", [], list => {
@@ -971,6 +1034,7 @@ async function handle(req, context) {
         list.splice(i, 1);
       });
       await s.delete("gc/club_" + id).catch(() => {});
+      await s.delete("cvc/" + id).catch(() => {});
       return ok("Club deleted");
     } else return E("unknown action");
     return ok(msg, { club: await clubDetail(s, me, id) });
@@ -997,7 +1061,7 @@ async function handle(req, context) {
       if (list.filter(e => e.host === me.id && OPLIVE(e)).length >= 5) throw new Bad("You already have 5 open plays running");
       if (list.length >= 300) throw new Bad("Too many open plays right now. Try again later.");
       list.push(made = { id: uid(), host: me.id, hn: me.username, club: cl.id, cn: cl.name, mode, title, desc, loc, ts, dur, price, pay, cap, courts, rounds, status: "open", made: Date.now(), seq: 0,
-        pl: [{ id: me.id, n: me.username, j: Date.now(), paid: true }], g: [] }); // the host plays too and doesn't pay themselves
+        qr: true, pl: [{ id: me.id, n: me.username, j: Date.now(), paid: true, ci: Date.now() }], g: [] }); // the host plays too, doesn't pay and is there by definition
     });
     await Promise.all([...gone].map(i => s.delete("gc/op_" + i).catch(() => {})));
     return ok("Open play published", { od: opDetail(made, me) });
@@ -1012,30 +1076,68 @@ async function handle(req, context) {
       if (!e) return E("Open play not found", 404);
       return J({ od: opDetail(e, me) });
     }
+    if (a === "opCode") { // the host's phone polls this; the code changes every minute
+      const e0 = (await jget(s, "op", [])).find(x => x.id === id);
+      if (!e0) return E("Open play not found", 404);
+      if (e0.host !== me.id) return E("Only the host can show the check-in code", 403);
+      if (e0.status !== "open" && e0.status !== "live") return E("This open play is closed");
+      return J({ code: await qrAt(s, "op:" + id, qrNow()) });
+    }
+    if (a === "opCheckin") {
+      const lk = "oc:" + me.id;
+      if (await locked(s, lk, 10, 9e5)) return E("Too many wrong codes. Try again later.", 429);
+      if (!(await qrOk(s, "op:" + id, b.code))) { await hit(s, lk, 9e5); return E("Invalid or expired code. Scan the code on the host's phone."); }
+      e = await mutOp(s, id, e => {
+        if (e.status !== "open" && e.status !== "live") throw new Bad("This open play is closed");
+        const x = e.pl.find(z => z.id === me.id && !z.left);
+        if (!x) throw new Bad("Join this open play first, then scan the code");
+        if (Date.now() < e.ts - 2 * 36e5) throw new Bad("Check-in opens 2 hours before the start");
+        if (!x.ci) x.ci = Date.now();
+        x.out = 0; // scanning again after checking out brings you back
+        opSync(e);
+      });
+      const mine = e.pl.find(z => z.id === me.id);
+      return ok(mine && mine.paid ? "Checked in. You're in the games." : "Checked in. Pay the host to get into the games.", { od: opDetail(e, me) });
+    }
     if (a === "opJoin") {
       e = await mutOp(s, id, async e => {
-        if (e.status !== "open" && e.status !== "live") throw new Bad("This open play is closed");
+        if (!OPLIVE(e)) throw new Bad("This open play is closed");
         if (e.club && e.host !== me.id) {
           const c = (await jget(s, "cl", [])).find(x => x.id === e.club);
           if (c && c.ap && !isMember(c, me.id)) throw new Bad("This club approves its members. Join the club first, then you can join its open plays.", 403);
         }
         if (e.pl.some(x => x.id === me.id && !x.left)) throw new Bad("You already joined");
         if (e.pl.filter(x => !x.left).length >= e.cap) throw new Bad("This open play is full");
-        e.pl = e.pl.filter(x => x.id !== me.id); // rejoining after leaving starts fresh
-        e.pl.push({ id: me.id, n: me.username, j: Date.now(), paid: !e.price });
+        const old = e.pl.find(x => x.id === me.id && x.left && x.cr);
+        if (old) { old.left = false; old.cr = false; old.ci = 0; old.out = 0; } // paid before leaving and not refunded: the payment still counts
+        else {
+          e.pl = e.pl.filter(x => x.id !== me.id); // otherwise rejoining starts fresh
+          e.pl.push({ id: me.id, n: me.username, j: Date.now(), paid: !e.price });
+        }
         opSync(e);
       });
-      msg = e.price ? "Joined. Pay the host and send your reference number to get into the games." : "Joined";
+      const back = e.pl.find(x => x.id === me.id);
+      msg = back && back.paid && e.price ? "Welcome back. Your payment still counts." : e.price ? "Joined. Pay the host and send your reference number to get into the games." : "Joined";
     } else if (a === "opLeave") {
       e = await mutOp(s, id, e => {
         const x = e.pl.find(z => z.id === me.id && !z.left);
         if (!x) throw new Bad("You haven't joined");
         if (e.host === me.id) throw new Bad("The host can't leave. Cancel or end the open play instead.");
         dropOpen(e, me.id);
-        if (e.g.some(g => g.p.includes(me.id))) x.left = true; else e.pl = e.pl.filter(z => z !== x); // keep the name if they already played
+        if (x.paid && e.price) { x.left = true; x.cr = true; x.ci = 0; x.out = 0; } // keep the payment on record until the host refunds it
+        else if (e.g.some(g => g.p.includes(me.id))) x.left = true; else e.pl = e.pl.filter(z => z !== x); // keep the name if they already played
         opSync(e);
       });
-      msg = "You left this open play. Ask the host about a refund if you already paid.";
+      msg = "You left this open play. Ask the host about a refund if you already paid. If you rejoin before then, your payment still counts.";
+    } else if (a === "opRefund") { // host: gave the money back to a player who left, so the payment credit is cleared
+      e = await mutOp(s, id, e => {
+        hostOnly(e);
+        const x = e.pl.find(z => z.id === pid && z.left && z.cr);
+        if (!x) throw new Bad("Nothing to refund");
+        x.cr = false; x.paid = false; x.ref = "";
+        if (!e.g.some(g => g.p.includes(x.id))) e.pl = e.pl.filter(z => z !== x);
+        msg = `${x.n} refunded`;
+      });
     } else if (a === "opRef") {
       const r = String(b.ref || "").trim();
       if (!/^[A-Za-z0-9 -]{4,24}$/.test(r)) return E("Enter the reference number from your e-wallet receipt");
@@ -1050,6 +1152,26 @@ async function handle(req, context) {
         if (!x.paid) dropOpen(e, x.id);
         opSync(e);
       });
+    } else if (a === "opArrive") { // host fallback when a phone can't scan
+      e = await mutOp(s, id, e => {
+        hostOnly(e);
+        const x = e.pl.find(z => z.id === pid && !z.left);
+        if (!x || x.id === e.host) throw new Bad("Player not found");
+        x.ci = x.ci || Date.now(); x.out = 0; msg = `${x.n} checked in`;
+        opSync(e);
+      });
+    } else if (a === "opCheckout") { // host: a player is done for the day. Their waiting games go, finished games stay, scanning again brings them back
+      e = await mutOp(s, id, e => {
+        hostOnly(e);
+        if (e.status !== "open" && e.status !== "live") throw new Bad("This open play is over");
+        const x = e.pl.find(z => z.id === pid && !z.left);
+        if (!x || x.id === e.host) throw new Bad("Player not found");
+        if (!e.qr) throw new Bad("Use Remove for this open play");
+        if (!x.ci) throw new Bad(`${x.n} isn't checked in`);
+        if (e.g.some(g => g.st === "p" && g.p.includes(x.id))) throw new Bad(`${x.n} is on a court. Finish or remove that game first.`);
+        dropOpen(e, x.id); x.ci = 0; x.out = Date.now(); opSync(e);
+        msg = `${x.n} checked out`;
+      });
     } else if (a === "opKick") {
       e = await mutOp(s, id, e => {
         hostOnly(e);
@@ -1063,7 +1185,7 @@ async function handle(req, context) {
       e = await mutOp(s, id, e => {
         hostOnly(e);
         if (e.status !== "open") throw new Bad("Already started");
-        if (inPlay(e).length < (e.mode === "ranked" ? 8 : 4)) throw new Bad(e.mode === "ranked" ? "A ranked open play needs at least 8 paid players" : "You need at least 4 paid players to start");
+        if (inPlay(e).length < (e.mode === "ranked" ? 8 : 4)) throw new Bad(e.mode === "ranked" ? "A ranked open play needs at least 8 players who paid and checked in" : "You need at least 4 players who paid and checked in to start");
         e.status = "live"; e.started = Date.now(); opSync(e);
       });
       msg = "Games started. The queue is set.";
@@ -1082,6 +1204,7 @@ async function handle(req, context) {
         if (e.status !== "live" || !g) throw new Bad("Game not found");
         if (e.host !== me.id && !(g.st === "p" && g.p.includes(me.id))) throw new Bad(g.st === "d" ? "Score already entered. Ask the host to change it." : "Only players in this game or the host can enter the score", 403);
         if (g.st === "q") throw new Bad("This game hasn't started");
+        if (e.mode === "ranked" && !validScore(x, y)) throw new Bad("Ranked games count toward ratings: use a valid final score (to 11, 15 or 21, win by 2)");
         g.sa = x; g.sb = y; if (g.st === "p") { g.st = "d"; g.t1 = Date.now(); }
         opSync(e);
       });
@@ -1114,8 +1237,9 @@ async function handle(req, context) {
       e = await mutOp(s, id, e => {
         hostOnly(e);
         if (e.status !== "live") throw new Bad("Nothing to end");
+        if (e.mode === "ranked" && !e.applied) { const n = e.g.filter(g => g.st === "p").length; if (n) throw new Bad(`${n} game${n === 1 ? " is" : "s are"} still on court. Enter the score or remove ${n === 1 ? "it" : "them"} first, or it won't count toward ratings.`); }
         e.g = e.g.filter(g => g.st === "d"); e.status = "ended"; e.ended = Date.now();
-        rate = e.mode === "ranked" && !e.applied ? e.g.map(g => ({ id: g.id, p: g.p.slice(), sa: g.sa, sb: g.sb })) : null; // ratings are applied exactly once
+        rate = e.mode === "ranked" && !e.applied ? e.g.slice().sort((m, n) => (m.t1 || 0) - (n.t1 || 0)).map(g => ({ id: g.id, p: g.p.slice(), sa: g.sa, sb: g.sb })) : null; // ratings are applied exactly once
         if (rate) e.applied = true;
         if (!e.logged) { e.logged = true; logIt = true; }
       });
@@ -1137,12 +1261,17 @@ async function handle(req, context) {
     return ok(msg, { od: opDetail(e, me) });
   }
 
-  if (["attend", "assess", "assign", "approve", "addSession", "cancelSession", "paid", "setPay", "rate"].includes(a)) {
+  if (["attend", "assess", "assign", "approve", "addSession", "cancelSession", "paid", "setPay", "rate", "sesCode"].includes(a)) {
     if (!coach) return E("forbidden", 403);
     if (a === "setPay") {
       const text = String(b.text || "").trim().slice(0, 120);
       await mutU(s, me.id, u => { u.pay = text; }); await coaches(s, true);
       return ok("Payment details saved");
+    }
+    if (a === "sesCode") { // the coach's phone shows this for one of their own sessions
+      const x = (await jget(s, "ss", [])).find(v => v.id === String(b.sid || "") && v.coach === me.id && v.status === "open");
+      if (!x) return E("Session not found", 404);
+      return J({ code: await qrAt(s, "bk:" + x.id, qrNow()) });
     }
     if (a === "addSession") {
       const ts = +b.ts, price = Math.round(+b.price * 100), kind = b.kind === "clinic" ? "clinic" : "lesson", title = String(b.title || "").trim().slice(0, 60);
@@ -1243,7 +1372,6 @@ async function handle(req, context) {
     await applyPlan(s, plan); await matchmake(s, cfg);
     return ok("Score set");
   }
-  if (a === "qrCode") return J({ code: await qrAt(s, Math.floor(Date.now() / 6e4)) });
   if (a === "setDisabled") {
     const id = String(b.id || "");
     if (id === me.id) return E("invalid");
@@ -1271,7 +1399,7 @@ async function handle(req, context) {
     const lat = b.lat === "" || b.lat == null ? null : +b.lat, lng = b.lng === "" || b.lng == null ? null : +b.lng;
     if ((lat == null) !== (lng == null) || (lat != null && !(Math.abs(lat) <= 90 && Math.abs(lng) <= 180))) return E("Enter both latitude (-90 to 90) and longitude (-180 to 180), or leave both blank");
     await mutate(s, "cfg", {}, c => { // field-level merge: never clobbers invite tokens issued meanwhile
-      Object.assign(c, { tz, qr: !!b.qr, courts: [...new Set(courts.length ? courts : cfg.courts)], lat, lng, rad: Math.min(2000, Math.max(30, +b.rad || 150)), minMin: Math.min(30, Math.max(0, +b.minMin || 0)) });
+      Object.assign(c, { tz, courts: [...new Set(courts.length ? courts : cfg.courts)], lat, lng, rad: Math.min(2000, Math.max(30, +b.rad || 150)), minMin: Math.min(30, Math.max(0, +b.minMin || 0)) });
     });
     return ok("Settings saved");
   }
