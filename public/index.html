@@ -367,7 +367,7 @@ body.busy .app [data-a]:not([data-a=tab]):not([data-a=logout]):not([data-a=qrOff
 .o1{order:1}.o2{order:2}.o3{order:3}.o4{order:4}.o5{order:5}
 .mnav{display:none}
 .psh{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center}
-.psc{width:100%;max-width:560px;background:var(--card);border-radius:20px 20px 0 0;padding:16px var(--pad) calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
+.pback{position:absolute;inset:0}.psc{position:relative;z-index:1;width:100%;max-width:560px;background:var(--card);border-radius:20px 20px 0 0;padding:16px var(--pad) calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
 .psc b{font:700 20px var(--disp);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px}
 .psc button{background:var(--soft);border:0;border-radius:14px;min-height:54px;text-align:left;padding:0 16px;font-weight:600;font-size:17px}
 @media(max-width:1023px){
@@ -597,7 +597,7 @@ const A={
   prof:x=>{if(x===S.me.id){view=null;tab="me"}else view=x;draw();scrollTo(0,0)},
   back:()=>{if(view)view=null;else if(ov||cv){ov=null;cv=null}else{cl=null;clubEdit=null}draw()},
   hideGuide:()=>{try{localStorage.setItem("gd"+S.me.id,"1")}catch(_){}draw()},
-  plus:()=>{plusOn=!plusOn;draw()},recMatch:()=>{plusOn=false;const o=S.ops.find(e=>(e.joined||e.mine)&&e.st==="live");if(S.match)A.tab("play");else if(o){view=null;cv=null;cl=null;ov=o.id;draw();scrollTo(0,0);opLoad(o.id)}else{A.tab("open");say("Scores are recorded inside a live open play. Join or host one.")}},
+  plus:()=>{plusOn=!plusOn;draw()},
   tab:x=>{plusOn=false;tab=x;view=null;ov=null;cv=null;cl=null;clubEdit=null;if(x==="club")CBs=1;draw();scrollTo(0,0);if(x==="admin")load();if(x==="players")searchPlayers(v("ps")||"")}
 };
 // ---- profile picture: choose a photo, move and zoom it in a circle, save a 256 px JPEG ----
@@ -1136,7 +1136,7 @@ function draw(poll){
   document.body.classList.toggle("nav",!need);document.body.classList.toggle("dashb",!need&&tab==="play"&&!view&&!ov&&!cl&&!cv);document.body.classList.toggle("chatting",!!(cv&&!view&&!need));
   const mn=[["play","Home"],["open","Play"],null,["club","Clubs"],["me","Me"]],
     mnav=`<nav class="mnav" aria-label="Main"${need?" hidden":""}>${mn.map(t=>t?`<button class="${t[0]===tab&&!view?"on":""}" data-a="tab" data-v="${t[0]}">${ic(t[0])}<span>${t[1]}</span>${t[0]==="me"&&S.unread?`<i class="bdg">${S.unread>9?"9+":S.unread}</i>`:""}</button>`:`<button class="fab" data-a="plus" aria-label="Create"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>`).join("")}</nav>`,
-    psh=plusOn&&!need?`<div class="psh" data-a="plus"><div class="psc" role="dialog" aria-label="Create" onclick="event.stopPropagation()"><b>Create</b><button data-a="hostNow">🏓 Host Open Play</button><button data-a="recMatch">📝 Record Match</button><button data-a="tab" data-v="friends">👥 Add Friend</button><button data-a="tab" data-v="cal">🎯 Book Training</button></div></div>`:"";
+    psh=plusOn&&!need?`<div class="psh"><div class="pback" data-a="plus"></div><div class="psc" role="dialog" aria-label="Create"><b>Create</b><button data-a="hostNow">🏓 Host Open Play</button><button data-a="tab" data-v="friends">👥 Add Friend</button><button data-a="tab" data-v="cal">🎯 Book Training</button></div></div>`:"";
   el.innerHTML=`${ph}${warn}${body}
   <nav class="tabs" aria-label="Sections"${need?" hidden":""}><div>${tabs.map(([k,n])=>`<button class="${k===tab&&!view?"on":""}"${k===tab?' aria-current="page"':""} data-a="tab" data-v="${k}">${ic(k)}${n}${k==="friends"&&S.unread?`<i class="bdg">${S.unread>9?"9+":S.unread}</i>`:""}</button>`).join("")}</div></nav>${mnav}${psh}${tt}`;
   rest();if(document.getElementById("spv"))preview();{const cm=document.getElementById("cm")||document.getElementById("gm");if(cm){cm.scrollTop=msgTop===null||msgEnd?cm.scrollHeight:msgTop;cm.dataset.init=1;cm.dataset.n=cm.querySelectorAll(".mg").length;const t=document.getElementById(cm.id==="cm"?"cx":"gx");chatFit(t)}}
