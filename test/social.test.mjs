@@ -271,3 +271,15 @@ test("paid open play: leaving keeps the payment until the host refunds it, rejoi
   await call("opJoin", { id: free }, "bob"); await call("opLeave", { id: free }, "bob");
   assert.equal((await call("opGet", { id: free }, "hosty")).body.od.pl.some(p => p.id === ID.bob), false);
 });
+
+test("v8.14: last-active, challenge and open-play invite go through chat to friends only", async () => {
+  const { ID, call } = await setup();
+  await call("fAdd", { name: "ann" }, "hosty"); await call("fAccept", { id: ID.hosty }, "ann");
+  assert.equal((await call("fInvite", { id: ID.bob, kind: "challenge" }, "hosty")).status, 403, "not friends");
+  assert.equal((await call("fInvite", { id: ID.ann, kind: "nope" }, "hosty")).status, 400);
+  assert.equal((await call("fInvite", { id: ID.ann, kind: "challenge" }, "hosty")).status, 200);
+  assert.equal((await call("fInvite", { id: ID.ann, kind: "op", op: "missing" }, "hosty")).status, 400, "unknown open play");
+  const st = await call("state", {}, "ann");
+  assert.equal(st.body.unread, 1);
+  assert.match((await call("chat", { id: ID.hosty }, "ann")).body.msgs[0].x, /challenges you/);
+});
