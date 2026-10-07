@@ -385,6 +385,7 @@ body.busy .app [data-a]:not([data-a=tab]):not([data-a=logout]):not([data-a=qrOff
   .psh{align-items:center}.psc{border-radius:20px;max-width:380px}
 }
 @media(prefers-reduced-motion:reduce){.pbar i{transition:none}}
+.cc{display:inline-flex;align-items:center;gap:4px;margin-left:6px;vertical-align:middle;background:#E3F5EA;color:#0B6B3F;border-radius:999px;padding:1px 9px 1px 6px;font:700 12px/1.6 var(--disp);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}.cc svg{width:13px;height:13px;flex:none}.greet .cc{margin-left:0}
 </style>
 </head>
 <body>
@@ -597,7 +598,7 @@ const A={
   prof:x=>{if(x===S.me.id){view=null;tab="me"}else view=x;draw();scrollTo(0,0)},
   back:()=>{if(view)view=null;else if(ov||cv){ov=null;cv=null}else{cl=null;clubEdit=null}draw()},
   hideGuide:()=>{try{localStorage.setItem("gd"+S.me.id,"1")}catch(_){}draw()},
-  plus:()=>{plusOn=!plusOn;draw()},
+  plus:()=>{plusOn=!plusOn;draw()},histMore:()=>{histAll=!histAll;draw()},
   tab:x=>{plusOn=false;tab=x;view=null;ov=null;cv=null;cl=null;clubEdit=null;if(x==="club")CBs=1;draw();scrollTo(0,0);if(x==="admin")load();if(x==="players")searchPlayers(v("ps")||"")}
 };
 // ---- profile picture: choose a photo, move and zoom it in a circle, save a 256 px JPEG ----
@@ -693,19 +694,22 @@ function hero(p,{self,back}={}){
   const relTxt=nr?(self?`<b>NR means not rated yet.</b> Your estimate is ${fmtR(p.pr)}. Play about ${Math.max(1,Math.ceil(3-(p.ip||0)))} more game${Math.ceil(3-(p.ip||0))===1?"":"s"} against rated players to get your official rating.`:`<b>Not rated yet.</b> Estimated ${fmtR(p.pr)} from ${(p.w|0)+(p.l|0)} game${(p.w|0)+(p.l|0)===1?"":"s"}.`)
     :rel===0?`<b>Reliability builds as you play.</b> ${self?"Play a few games with different partners and opponents.":"No recent games yet."}`:rel>=60?`<b>${rel}% reliable.</b> This rating is well established.`:`<b>${rel}% reliable.</b> ${self?"Play with more different partners and opponents to make your rating more reliable.":"Still settling in."}`;
   return `<div class="hero${p.cv?" hascv":""}">${coverTag("cover",p.n,p.cv)}${COURT}${back?`<button class="back" data-a="back">&lsaquo; Back</button>`:""}
-  <div class="who">${av(p.n,1,p.a??p.av??0)}<div><b>${esc(p.n)}</b><div class="lv">${esc(levelOf(p.r))}${p.coach?", certified coach":""}${p.src==="coach"?", coach-rated start":""}</div></div></div>
+  <div class="who">${av(p.n,1,p.a??p.av??0)}<div><b>${esc(p.n)}</b>${p.coach?ccTag():""}<div class="lv">${esc(levelOf(p.r))}${p.src==="coach"?", coach-rated start":""}</div></div></div>
   <div class="rating">${bigR(p.r)}<div class="side"><b>Doubles</b>club rating</div></div>
   <div class="rel"><div class="track"><i style="width:${nr?0:rel}%"></i></div><p>${relTxt}</p></div>
   ${games?`<div class="stats"><div><b>${games}</b><span>Games</span></div><div><b>${p.w|0}-${p.l|0}</b><span>Won-lost</span></div><div><b>${Math.round((p.w|0)/games*100)}%</b><span>Win rate</span></div></div>`:""}</div>`;
 }
+let histAll=false;
 function histRows(h){
   if(!h)return`<p class="empty">Loading matches...</p>`;
   if(!h.length)return`<p class="empty">No rated matches yet. Join a ranked open play to get started.</p>`;
-  return opts(h,x=>`<div class="row"><span class="wl${x.w?" w":""}" aria-label="${x.w?"Win":"Loss"}">${x.w?"W":"L"}</span><div class="g1"><span class="n">${x.s[0]}-${x.s[1]}</span> <span class="m">with ${esc(x.pt)} vs ${x.op.map(esc).join(" and ")}</span><div class="m">${day(x.t)}${x.ot?", "+esc(x.ot):""}${x.d!=null?", expected "+expScore(x.ex??.5)+(x.nr?", provisional":""):""}</div></div>${x.d!=null?`<b class="${x.d>=0?"up":"down"}">${signed(x.d)}</b>`:`<span class="chip">${x.k==="ranked"?"Ranked":"Casual"}</span>`}</div>`);
+  const N=5,more=h.length>N,rows=histAll?h:h.slice(0,N);
+  return opts(rows,x=>`<div class="row"><span class="wl${x.w?" w":""}" aria-label="${x.w?"Win":"Loss"}">${x.w?"W":"L"}</span><div class="g1"><span class="n">${x.s[0]}-${x.s[1]}</span> <span class="m">with ${esc(x.pt)} vs ${x.op.map(esc).join(" and ")}</span><div class="m">${day(x.t)}${x.ot?", "+esc(x.ot):""}${x.d!=null?", expected "+expScore(x.ex??.5)+(x.nr?", provisional":""):""}</div></div>${x.d!=null?`<b class="${x.d>=0?"up":"down"}">${signed(x.d)}</b>`:`<span class="chip">${x.k==="ranked"?"Ranked":"Casual"}</span>`}</div>`)+(more?`<button class="btn g" data-a="histMore" style="width:100%;margin-top:8px">${histAll?"Show less":"Show all "+h.length+" matches"}</button>`:"");
 }
 function teamBlock(names,rs,mine){return`<div class="team${mine?" mine":""}">${names.map((n,i)=>`<div class="pl">${av(n)}<div><b>${esc(n)}</b><span>${fmtR(rs?rs[i]:null)}</span></div></div>`).join("")}</div>`}
 
 // ---- Home dashboard (roadmap P0): rating, level/XP, next game, quests, leaderboard ----
+const ccTag=()=>`<span class="cc" title="Certified coach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Certified coach</span>`;
 const LVL=200,MED=["🥇","🥈","🥉"],QI=["🏓","🎯","🦵","💪","🔥"];
 const lvlOf=x=>({n:Math.floor(x/LVL)+1,cur:x%LVL});
 const greet=()=>{const h=new Date().getHours();return h<12?"Good morning":h<18?"Good afternoon":"Good evening"};
@@ -716,7 +720,7 @@ function statTrio(){
   const u=S.me,g=(u.w|0)+(u.l|0),nr=u.r==null,L=lvlOf(u.xp|0),mo=monthDelta(u.hist),left=Math.max(1,Math.ceil(3-(u.ip||0)));
   const rsub=nr?`Est. ${fmtR(u.pr)}`:mo?`${mo>0?"↑":"↓"} ${signed(mo)} this month`:esc(levelOf(u.r));
   const hint=nr?`Play ${left} more rated game${left===1?"":"s"} to establish your official rating.`:`${esc(levelOf(u.r))}${u.rel?`, ${u.rel|0}% reliable`:""}.`;
-  return `<div class="sheet yp"><h2>Your PickleUp</h2><div class="stat3"><button data-a="tab" data-v="me"><span>Rating</span><b class="${nr?"nr":""}">${nr?"NR":fmtR(u.r)}</b><i>${rsub}</i></button><button data-a="tab" data-v="quests"><span>Level ${L.n}</span><b>${(u.xp|0).toLocaleString()} XP</b><i>${LVL-L.cur} to next</i></button><button data-a="tab" data-v="me"><span>Matches</span><b>${g}</b><i>${u.w|0}W · ${u.l|0}L</i></button></div><p class="m yph">${hint}</p>${xpBar(u.xp)}</div>`;
+  return `<div class="sheet yp"><h2>Your PickleUp</h2><div class="stat3"><button data-a="tab" data-v="me"><span>Rating</span><b class="${nr?"nr":""}">${nr?"NR":fmtR(u.r)}</b><i>${rsub}</i></button><button data-a="tab" data-v="quests"><span>Level ${L.n}</span><b>${(u.xp|0).toLocaleString()} XP</b><i>${LVL-L.cur} to next</i></button><button data-a="tab" data-v="me"><span>Ranked Matches</span><b>${g}</b><i>${u.w|0}W · ${u.l|0}L</i></button></div><p class="m yph">${hint}</p>${xpBar(u.xp)}</div>`;
 }
 // Next game: whichever is soonest of your open plays and your next booked lesson; else the soonest open session
 function nextGame(){
@@ -747,12 +751,12 @@ function questRows(){return opts(S.today,(q,i)=>`<div class="row"><span class="q
 function homeQuests(){return `<div class="sheet"><h2>🔥 Daily quests</h2>${questBar()}${questRows()}</div>`}
 function yourPos(){const r=myRank();return r?`<div class="sheet yourpos"><h2>Your position</h2><div class="rkme"><b>#${r.i}</b><div><span>${esc(S.me.username)}</span><i>of ${r.n} rated</i></div><em>${fmtR(S.me.r)}</em></div></div>`:`<div class="sheet yourpos"><h2>Your position</h2><p class="sub">Get your official rating to join the ranking.</p></div>`}
 function homeBoard(){const top=(S.board||[]).filter(u=>u.r!=null).slice(0,3);
-  return `<div class="sheet"><h2>Leaderboard</h2>${(()=>{const r=myRank();return r?`<p class="sub">You are <b>#${r.i}</b> of ${r.n} rated players.</p>`:`<p class="sub">Get rated to join the ranking.</p>`})()}${opts(top,(u,i)=>`<div class="row"><span class="rk top">${MED[i]}</span>${av(u.n)}<div class="g1"><span class="n">${esc(u.n)}</span></div><div class="rv">${fmtR(u.r)}</div></div>`)}<button class="btn" data-a="tab" data-v="players">Full leaderboard</button></div>`}
+  return `<div class="sheet"><h2>Leaderboard</h2>${(()=>{const r=myRank();return r?`<p class="sub">You are <b>#${r.i}</b> of ${r.n} rated players.</p>`:`<p class="sub">Get rated to join the ranking.</p>`})()}${opts(top,(u,i)=>`<div class="row"><span class="rk top">${MED[i]}</span>${av(u.n)}<div class="g1"><span class="n">${esc(u.n)}</span>${u.c?ccTag():""}</div><div class="rv">${fmtR(u.r)}</div></div>`)}<button class="btn" data-a="tab" data-v="players">Full leaderboard</button></div>`}
 function quick(){const r=S.me.role,l=[["players","Leaderboard"],["friends","Friends"],["cal","Book"],["quests","Quests"]];if(r!=="player")l.push(["coach","Coach"]);if(r==="admin")l.push(["admin","Admin"]);
   return `<div class="sheet quick">${l.map(([k,n])=>`<button data-a="tab" data-v="${k}">${ic(k)}<span>${n}</span>${k==="friends"&&S.unread?`<i class="bdg">${S.unread>9?"9+":S.unread}</i>`:""}</button>`).join("")}</div>`}
 function play(){
   const m=S.match,ng=nextGame();
-  const top=`<div class="greet"><h1>${greet()}, ${esc(S.me.username)} 👋</h1></div>${statTrio()}${m?matchCard(m):""}`;
+  const top=`<div class="greet"><h1>${greet()}, ${esc(S.me.username)} 👋</h1>${S.me.role==="certified_coach"?`<div style="margin:6px 0 0">${ccTag()}</div>`:""}</div>${statTrio()}${m?matchCard(m):""}`;
   const ex=homeFriends()+guide()+(S.me.last?`<div class="sheet"><h2>Last result</h2><p class="delta">${esc(S.me.last)}</p></div>`:"");
   return top+`<div class="dcols"><div><div class="o1">${ng.html}</div><div class="o4">${homeOpen(ng.id)}</div></div><div><div class="o2">${homeQuests()}</div><div class="o3">${homeBoard()}</div><div class="o5">${quick()}${ex}</div></div></div>`;
 }
@@ -954,7 +958,7 @@ function playersList(){
   const q=v("ps");
   return `<div class="sheet flat" style="padding-top:14px"><h2>Leaderboard</h2><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="ps" type="search" placeholder="Search players by name" autocomplete="off"></div></div>
   ${!q?yourPos():""}<div class="sheet"><h2>${q?"Results":"Player ranking"}</h2><p class="sub">${q?"Rated players first.":"Rated players by doubles rating. Tap anyone to see their profile."}</p>
-  ${list.length?opts(list,(u,i)=>`<button class="row tap" data-a="prof" data-v="${u.id}">${u.r!=null&&!q?`<span class="rk${i<3?" top":""}">${i<3?MED[i]:i+1}</span>`:""}${av(u.n)}<div class="g1"><span class="n">${esc(u.n)}${u.me?" (you)":""}</span><div class="m">${esc(levelOf(u.r))}, ${u.w|0}-${u.l|0}</div></div><div class="rv">${fmtR(u.r)}<span>${u.r==null?"provisional":(u.rel|0)+"% reliable"}</span></div></button>`):`<p class="empty">${q?"No players match that name.":"No rated players yet. Ratings appear after a few confirmed games."}</p>`}</div>`;
+  ${list.length?opts(list,(u,i)=>`<button class="row tap" data-a="prof" data-v="${u.id}">${u.r!=null&&!q?`<span class="rk${i<3?" top":""}">${i<3?MED[i]:i+1}</span>`:""}${av(u.n)}<div class="g1"><span class="n">${esc(u.n)}${u.me?" (you)":""}</span>${u.c?ccTag():""}<div class="m">${esc(levelOf(u.r))}, ${u.w|0}-${u.l|0}</div></div><div class="rv">${fmtR(u.r)}<span>${u.r==null?"provisional":(u.rel|0)+"% reliable"}</span></div></button>`):`<p class="empty">${q?"No players match that name.":"No rated players yet. Ratings appear after a few confirmed games."}</p>`}</div>`;
 }
 function profileView(id){
   const p=P[id];
