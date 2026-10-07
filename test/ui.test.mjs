@@ -94,27 +94,32 @@ test("network failure shows a human message instead of 'Failed to fetch'", async
   app.close();
 });
 
-test("admin check-in screen draws the QR code locally and a player can check in with it", async () => {
+test("host's open play screen draws the check-in QR locally; a player with that code is checked in", async () => {
   const c = await fresh({ ADMIN_PASSWORD: "x-admin-pw" });
-  const at = (await c.ok("login", { username: "admin", password: "x-admin-pw" })).token;
-  await c.ok("setCfg", { qr: true, courts: "Court 1", rad: 150, minMin: 5, tz: "UTC" }, at);
+  const h = await c.player("hostui", "198.51.100.4");
+  const club = (await c.ok("clubCreate", { name: "UI Club" }, h)).club.id;
+  const od = (await c.ok("opCreate", { club, title: "UI night", loc: "Riverside Courts", ts: Date.now() + HOUR, price: 0, cap: 12, courts: 1, rounds: 1 }, h)).od;
   // jsdom doesn't fetch script files, so inline the vendored library in place of its <script src>
   const lib = readFileSync(new URL("../public/vendor/qrcode.min.js", import.meta.url), "utf8");
   const html = HTML.replace(/<script src="vendor\/qrcode\.min\.js"[^>]*><\/script>/, () => `<script>${lib}</script>`);
   assert.notEqual(html, HTML, "page loads the vendored QR library");
   assert.ok(!/cdnjs|unpkg|jsdelivr/.test(HTML), "no third-party script hosts");
-  const app = await openApp(c, { token: at, html });
-  await until(() => app.$("[data-v=admin]"), "admin tab");
-  app.click("[data-a=tab][data-v=admin]");
+  assert.ok(!/Front-desk|front desk/.test(HTML), "the old admin front-desk screen is gone");
+  const app = await openApp(c, { token: h, html });
+  await until(() => app.$("[data-a=tab][data-v=open]"), "open play tab");
+  app.click("[data-a=tab][data-v=open]");
+  await until(() => app.$("[data-a=ov]"), "open play row");
+  app.click("[data-a=ov]");
   await until(() => app.$("[data-a=qrOn]"), "show code button");
   app.click("[data-a=qrOn]");
   await until(() => app.$("#qrbox")?.firstChild, "QR drawn");
   const code = app.$("#qrbox").parentElement.querySelector(".big").textContent.trim();
   assert.match(code, /^[A-Z0-9]{8}$/);
-  const p = await c.register("qrplayer", "198.51.100.4");
-  assert.equal((await c.call("checkin", { code: "WRONG123" }, p)).status, 400);
-  await c.ok("checkin", { code }, p);
-  assert.equal((await c.ok("state", {}, p)).checked, true);
+  const p = await c.player("scanui", "198.51.100.5");
+  await c.ok("opJoin", { id: od.id }, p);
+  assert.equal((await c.call("opCheckin", { id: od.id, code: "WRONG123" }, p)).status, 400);
+  await c.ok("opCheckin", { id: od.id, code }, p);
+  assert.equal((await c.ok("opGet", { id: od.id }, p)).od.pl.find(x => x.me).here, true);
   app.close();
 });
 
@@ -163,17 +168,37 @@ test("no top-level name in the page shadows a browser global (e.g. a function ca
   assert.deepEqual(clash, [], "rename these: " + clash.join(", "));
 });
 
-test("opening a facility QR link, then logging in, checks the player in", async () => {
+test("opening an open play's check-in link, then logging in, checks the player in", async () => {
   const c = await fresh({ ADMIN_PASSWORD: "x-admin-pw" });
-  const at = (await c.ok("login", { username: "admin", password: "x-admin-pw" })).token;
-  await c.ok("setCfg", { qr: true, courts: "Court 1", rad: 150, minMin: 5, tz: "UTC" }, at);
-  const code = (await c.ok("qrCode", {}, at)).code;
-  await c.register("scanner", "198.51.100.40");
-  const app = await openApp(c, { url: "https://club.test/?ci=" + code });
+  const h = await c.player("hostlink", "198.51.100.41");
+  const club = (await c.ok("clubCreate", { name: "Link Club" }, h)).club.id;
+  const od = (await c.ok("opCreate", { club, title: "Link night", loc: "Riverside Courts", ts: Date.now() + HOUR, price: 0, cap: 12, courts: 1, rounds: 1 }, h)).od;
+  const s = await c.player("scanner", "198.51.100.40");
+  await c.ok("opJoin", { id: od.id }, s);
+  const code = (await c.ok("opCode", { id: od.id }, h)).code;
+  const app = await openApp(c, { url: `https://club.test/?ci=o.${od.id}.${code}` });
   assert.equal(app.w.location.search, "", "code removed from the address bar");
   app.$("#u").value = "scanner"; app.$("#p").value = "secret123";
   app.click("[data-a=auth]");
   await until(() => app.$(".toast")?.textContent.includes("Checked in"), "checked in");
+  app.close();
+});
+
+test("opening a coach's check-in link, then logging in, checks in the booked player", async () => {
+  const c = await fresh({ ADMIN_PASSWORD: "x-admin-pw" });
+  const at = (await c.ok("login", { username: "admin", password: "x-admin-pw" })).token;
+  const inv = (await c.ok("invite", {}, at)).msg.replace("Invite: ", "");
+  const ct = await c.register("coachlink", "198.51.100.42"); await c.ok("redeem", { token: inv }, ct);
+  await c.ok("addSession", { kind: "lesson", ts: Date.now() + HOUR, title: "Link lesson", price: 0, dur: 60 }, ct);
+  const p = await c.player("booker", "198.51.100.43");
+  const sid = (await c.ok("state", {}, p)).sessions[0].id;
+  await c.ok("book", { sessionId: sid }, p);
+  const code = (await c.ok("sesCode", { sid }, ct)).code;
+  const app = await openApp(c, { url: `https://club.test/?ci=b.${sid}.${code}` });
+  app.$("#u").value = "booker"; app.$("#p").value = "secret123";
+  app.click("[data-a=auth]");
+  await until(() => app.$(".toast")?.textContent.includes("Checked in"), "checked in");
+  assert.equal((await c.ok("state", {}, p)).me.xp, 40);
   app.close();
 });
 

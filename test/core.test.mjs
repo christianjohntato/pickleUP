@@ -114,6 +114,47 @@ test("coach flow: invite, publish, book, capacity, cancel policy, attend, badge,
   assert.equal((await c.call("assign", { playerId: pid2, title: "x" }, ct)).status, 400);
 });
 
+test("coach QR: the code belongs to one session, rotates, and a booked player scanning it is checked in", async () => {
+  const c = await fresh(ADMIN);
+  const at = await adminToken(c);
+  const tok = (await c.ok("invite", {}, at)).msg.replace("Invite: ", "");
+  const ct = await c.register("coachqr", ip());
+  await c.ok("redeem", { token: tok }, ct);
+  const when = Date.now() + 3 * HOUR;
+  await c.ok("addSession", { kind: "clinic", ts: when, title: "Clinic A", price: 0, cap: 4, dur: 60 }, ct);
+  await c.ok("addSession", { kind: "lesson", ts: when + 3 * HOUR, title: "Lesson B", price: 0, dur: 60 }, ct);
+  const p1 = await c.player("scan1", ip()), p2 = await c.player("scan2", ip()), p3 = await c.player("scan3", ip());
+  const ss = (await c.ok("state", {}, p1)).sessions, A = ss.find(x => x.title === "Clinic A").id, B = ss.find(x => x.title === "Lesson B").id;
+  await c.ok("book", { sessionId: A }, p1);
+  await c.ok("book", { sessionId: A }, p2);
+  assert.equal((await c.call("sesCode", { sid: A }, p1)).status, 403, "players can't show a coach's code");
+  const other = await c.register("coachqr2", ip());
+  await c.ok("redeem", { token: (await c.ok("invite", {}, at)).msg.replace("Invite: ", "") }, other);
+  assert.equal((await c.call("sesCode", { sid: A }, other)).status, 404, "a coach only gets codes for their own sessions");
+  const codeA = (await c.ok("sesCode", { sid: A }, ct)).code, codeB = (await c.ok("sesCode", { sid: B }, ct)).code;
+  assert.match(codeA, /^[A-Z0-9]{8}$/); assert.notEqual(codeA, codeB, "each session has its own code");
+  assert.equal((await c.call("bkCheckin", { sid: A, code: "WRONG123" }, p1)).status, 400);
+  assert.equal((await c.call("bkCheckin", { sid: A, code: codeB }, p1)).status, 400, "another session's code is refused");
+  assert.equal((await c.call("bkCheckin", { sid: A, code: codeA }, p3)).status, 400, "no booking, no check-in");
+  assert.equal((await c.call("bkCheckin", { sid: A, code: codeA }, p1)).status, 400, "too early: opens 2 hours before");
+  advance(2 * HOUR + 10 * MIN); // inside the window, and the early code has long expired
+  assert.equal((await c.call("bkCheckin", { sid: A, code: codeA }, p1)).status, 400, "old codes stop working");
+  const fresh1 = (await c.ok("sesCode", { sid: A }, ct)).code;
+  assert.match((await c.ok("bkCheckin", { sid: A, code: fresh1 }, p1)).msg, /\+40 XP/);
+  const mine = await c.ok("state", {}, p1);
+  assert.equal(mine.bookings[0].status, "attended"); assert.equal(mine.me.xp, 40);
+  assert.equal((await c.call("bkCheckin", { sid: A, code: fresh1 }, p1)).status, 400, "no double check-in, no double XP");
+  await c.ok("assign", { playerId: mine.me.id, title: "50 volleys", xp: 10 }, ct); // scanning put p1 on the coach's roster
+  advance(2 * MIN); // a code stays valid for about 3 minutes, so a slow scan still works
+  assert.equal((await c.call("bkCheckin", { sid: A, code: fresh1 }, p2)).status, 200);
+  // the coach can still tap Check in for a phone that can't scan
+  const p4 = await c.player("scan4", ip());
+  await c.ok("book", { sessionId: B }, p4);
+  advance(2 * HOUR);
+  const b4 = (await c.ok("state", {}, p4)).bookings[0].id;
+  assert.match((await c.ok("attend", { id: b4 }, ct)).msg, /\+40 XP/);
+});
+
 test("daily quests can be claimed once each", async () => {
   const c = await fresh(ADMIN);
   const t = await c.player("rae", ip());
@@ -127,6 +168,6 @@ test("daily quests can be claimed once each", async () => {
 test("non-admins cannot reach admin actions", async () => {
   const c = await fresh(ADMIN);
   const t = await c.register("mallory", ip());
-  for (const a of ["setRole", "setCfg", "invite", "voidMatch", "qrCode", "setDisabled"]) assert.equal((await c.call(a, {}, t)).status, 403, a);
-  for (const a of ["addSession", "attend", "assess"]) assert.equal((await c.call(a, {}, t)).status, 403, a);
+  for (const a of ["setRole", "setCfg", "invite", "voidMatch", "setDisabled"]) assert.equal((await c.call(a, {}, t)).status, 403, a);
+  for (const a of ["addSession", "attend", "assess", "sesCode"]) assert.equal((await c.call(a, {}, t)).status, 403, a);
 });

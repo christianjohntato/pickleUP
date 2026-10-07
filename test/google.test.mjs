@@ -35,7 +35,7 @@ test("new Google account: asks for a username, then creates the player and goes 
   assert.equal(first.suggest, "sam.player");
   assert.equal(first.token, undefined, "no account is created until a username is chosen");
 
-  const done = await c.ok("google", { credential: cred, username: "SamP" });
+  const done = await c.ok("google", { credential: cred, username: "SamP", password: "pw-12345" });
   const me = (await c.ok("state", {}, done.token)).me;
   assert.equal(me.username, "SamP");
   assert.equal(me.role, "player");
@@ -46,25 +46,25 @@ test("new Google account: asks for a username, then creates the player and goes 
 
 test("returning Google account signs straight in, even with a different username in the request", async () => {
   const c = await setup(), cred = idToken();
-  const t1 = (await c.ok("google", { credential: cred, username: "SamP" })).token;
-  const again = await c.ok("google", { credential: idToken(), username: "Other" });
+  const t1 = (await c.ok("google", { credential: cred, username: "SamP", password: "pw-12345" })).token;
+  const again = await c.ok("google", { credential: idToken(), username: "Other", password: "pw-12345" });
   assert.equal((await c.ok("state", {}, again.token)).me.id, (await c.ok("state", {}, t1)).me.id);
 });
 
 test("username rules: taken, reserved and invalid names are refused, then the same Google account can retry", async () => {
   const c = await setup();
-  await c.register("taken1");
+  await c.ok("google", { credential: idToken({ sub: "g-other" }), username: "taken1", password: "pw-12345" });
   const cred = idToken();
-  assert.equal((await c.call("google", { credential: cred, username: "Taken1" })).status, 409);
-  assert.equal((await c.call("google", { credential: cred, username: "admin" })).status, 409);
-  assert.equal((await c.call("google", { credential: cred, username: "a b" })).status, 400);
-  assert.equal((await c.call("google", { credential: cred, username: "ab" })).status, 400);
-  assert.ok((await c.ok("google", { credential: cred, username: "fresh_name" })).token);
+  assert.equal((await c.call("google", { credential: cred, username: "Taken1", password: "pw-12345" })).status, 409);
+  assert.equal((await c.call("google", { credential: cred, username: "admin", password: "pw-12345" })).status, 409);
+  assert.equal((await c.call("google", { credential: cred, username: "a b", password: "pw-12345" })).status, 400);
+  assert.equal((await c.call("google", { credential: cred, username: "ab", password: "pw-12345" })).status, 400);
+  assert.ok((await c.ok("google", { credential: cred, username: "fresh_name", password: "pw-12345" })).token);
 });
 
 test("a Google account has no password: password login with its name fails", async () => {
   const c = await setup();
-  await c.ok("google", { credential: idToken(), username: "nopw" });
+  await c.ok("google", { credential: idToken(), username: "nopw", password: "pw-12345" });
   for (const pw of ["", "x", "secret123"]) assert.equal((await c.call("login", { username: "nopw", password: pw })).status, 401);
 });
 
@@ -87,7 +87,7 @@ test("forged, expired, wrong-audience, unverified and unknown-key tokens are rej
 
 test("a disabled Google player cannot sign in", async () => {
   const c = await setup();
-  const t = (await c.ok("google", { credential: idToken(), username: "sam2" })).token;
+  const t = (await c.ok("google", { credential: idToken(), username: "sam2", password: "pw-12345" })).token;
   const admin = (await c.ok("login", { username: "admin", password: "x-admin-pw" })).token;
   await c.ok("setDisabled", { id: (await c.ok("state", {}, t)).me.id, disabled: true }, admin);
   assert.equal((await c.call("google", { credential: idToken() })).status, 403);
