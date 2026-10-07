@@ -66,7 +66,7 @@ const strip = ({ ph, salt, h, tv, dx, g, ...u }) => u;
 const tierOf = u => (u.badges.includes("dink_master") ? (u.badges.includes("third_shot_pro") ? 2 : 1) : 0);
 // XP past the tier ceiling is banked (max 500) and released when the next badge is signed off.
 const addXp = (u, n) => { const g = Math.min(n, Math.max(0, CAP[tierOf(u)].xp - u.xp)); u.xp += g; if (g < n) u.bank = Math.min(500, (u.bank | 0) + n - g); };
-const pub = u => ({ ...strip(u), tier: tierOf(u), cap: tierOf(u) < 2 ? CAP[tierOf(u)] : null, rel: reliability(u) });
+const pub = u => ({ ...strip(u), hp: !!(u.h || u.ph), tier: tierOf(u), cap: tierOf(u) < 2 ? CAP[tierOf(u)] : null, rel: reliability(u) });
 const newUser = (n, role = "player") => ({ id: uid(), username: n, role, created: Date.now(), disabled: false, tv: 0,
   defaultPw: false, xp: 0, pr: NR_ASSUME, ip: 0, hist: [], badges: [], w: 0, l: 0, done: [], ci: 0, last: "" });
 
@@ -599,12 +599,14 @@ async function handle(req, context) {
     // First time with this Google account: they pick a username, then land on the skill survey.
     const n = String(b.username ?? "").trim();
     if (!n) return J({ needName: true, email: c.email, suggest: nameFrom(c.email) });
+    const pw = String(b.password ?? "");
     if (!NAME.test(n)) return E("invalid");
+    if (pw.length < 6 || pw.length > 128) return E("badpw");
     if (RESERVED.has(n.toLowerCase())) return E("taken", 409);
     if (await locked(s, "r:" + ip, 40, 36e5)) return E("Too many sign-ups from this network", 429);
     if (await byName(s, n)) return E("taken", 409);
     await hit(s, "r:" + ip, 36e5);
-    u = newUser(n); u.g = c.sub; u.ge = c.email; // no password: this account signs in with Google
+    u = newUser(n); u.g = c.sub; u.ge = c.email; await setPw(u, pw); // they can log in with Google, or with this username and password
     if (!(await createUser(s, u))) return E("taken", 409);
     const w = await s.set("g/" + c.sub, u.id, { onlyIfNew: true });
     if (w && w.modified === false) { // a parallel request linked this Google account first: drop ours, use theirs
@@ -615,6 +617,7 @@ async function handle(req, context) {
     return J({ token: await token(s, u) });
   }
   if (a === "register") {
+    if (process.env.GOOGLE_CLIENT_ID) return E("New accounts are created with Google. Tap Continue with Google.", 403);
     const n = String(b.username || ""), pw = String(b.password || "");
     if (!NAME.test(n) || pw.length < 6 || pw.length > 128) return E("invalid");
     if (RESERVED.has(n.toLowerCase())) return E("taken", 409);
@@ -688,9 +691,10 @@ async function handle(req, context) {
     const np = String(b.newPw || ""), k = "u:" + me.username.toLowerCase();
     if (await locked(s, k, 8, 9e5)) return E("Too many attempts", 429);
     if (np.length < 6 || np.length > 128) return E("Use 6 to 128 characters");
-    if (!(await verify(s, me, String(b.oldPw || "")))) { await hit(s, k, 9e5); return E("wrong password"); }
+    const had = !!(me.h || me.ph);
+    if (had && !(await verify(s, me, String(b.oldPw || "")))) { await hit(s, k, 9e5); return E("wrong password"); }
     let nu; await mutU(s, me.id, async u => { u.tv = (u.tv | 0) + 1; u.defaultPw = false; u.mustChange = false; await setPw(u, np); nu = u; });
-    return J({ token: await token(s, nu), ...(await snapshot(s, nu, { ...DEF, ...(await jget(s, "cfg", {})) }, !!b.full)), msg: "Password changed" });
+    return J({ token: await token(s, nu), ...(await snapshot(s, nu, { ...DEF, ...(await jget(s, "cfg", {})) }, !!b.full)), msg: had ? "Password changed" : "Password set" });
   }
 
   // ---- Player: check-in, queue, scores
