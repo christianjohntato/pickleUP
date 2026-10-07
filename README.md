@@ -1,62 +1,534 @@
-# Pickleball Level Up (v1): club rating system
+# 🏓 Pickleball Club Platform
 
-Roles: player, certified_coach, admin. Server-side XP/Elo, ranked open-play queue, daily quests,
-coach-verified homework and skill badges, tier gates. Data lives in Netlify Blobs.
+> **Play. Improve. Connect. Level Up.**
 
-Deploy: push this folder to GitHub / Netlify. Set env ADMIN_PASSWORD before first use (the first admin user is "admin";
-since v7.2 there is no fallback password, so a fresh deploy has no admin until it is set).
-Admin tab: set courts, geofence (lat/lng/radius), invite coaches (token) or set roles.
+A **startup-stage web app for pickleball communities** that brings together **open play, clubs, player ratings, matchmaking, coaching, progression, social features, and match history** in one platform.
 
-v6.2 notes: passwords are scrypt-hashed server-side (old SHA hashes upgrade on next login), login is rate limited
-(8 tries/15 min per name, 40 per IP), admins can disable users. Set the club time zone in Admin so daily quests reset
-at local midnight. Tier ceilings (Elo/XP caps until a coach signs off the next badge) are the CAP constant in api.mjs.
-Optional env: SESSION_SECRET, GOOGLE_CLIENT_ID.
+Instead of using separate tools for finding games, organizing open play, tracking ratings, managing clubs, communicating with players, and working with coaches, this platform aims to put the entire pickleball community experience in one place.
 
-Sign in with Google (optional): in Google Cloud Console create an OAuth client of type "Web application", add your site's URL (and http://localhost:8888 for `netlify dev`) under "Authorized JavaScript origins", then set its client ID as GOOGLE_CLIENT_ID in Netlify and redeploy. Without it the Google button is simply hidden. A new Google account picks a username, then goes to the skill survey; a returning one signs straight in. Google accounts have no password, and only the verified email and Google's account id are stored.
-v6.3: ranked-match XP capped at 150/day; same group replaying within 12h earns 50% then 25% XP (flagged for admin); XP past a tier ceiling is banked (max 500) and released with the next badge.
-v6.4: rotating facility QR check-in (Admin > Check-in screen; players scan with camera or type the code), coach-published lessons/clinics with prices and capacity, cancellations (2h policy), payment tracking (not processing).
-v6.5: prices in pesos; coaches save GCash/e-wallet details, players send a reference number, coach confirms paid.
-v6.6: Book tab with 14-day session calendar, 'Coming up' banner, and .ics reminders (alerts 1 day and 2 hours before).
-v6.7: session duration (30-240 min), overlap checks for coaches and players, coach schedule grouped by day with booked names.
-v6.8 (bug-fix and tuning pass): repeat-group XP damping now matches the docs (1st replay 50%, 2nd+ 25%); disputed matches auto-void after 12h so they can't lock a court; expired queue entries no longer show as "in queue"; invite tokens are no longer burned by coaches/admins; geofence input validated; toast/QR refresh no longer steals input focus or resets the QR toggle; Admin tab loads the user list immediately; service worker no longer caches error responses or per-code URLs; adaptive polling; security headers.
-v6.9 (concurrency): every shared record (matches, queue, bookings, sessions, homework, config, users, rate limits) is now written with optimistic compare-and-swap (onlyIfMatch/onlyIfNew) and automatic retry, so simultaneous requests can no longer overwrite each other: double-booking, double XP, duplicate usernames, and lost invite tokens are prevented. Match results are applied by exactly one request. Needs a @netlify/blobs version with conditional writes (the API logs a warning if it detects one without). The session secret is created race-free and cached.
+**This is an early-stage product / MVP.**
+It is functional and feature-rich, but still actively evolving through real-world use and iteration.
 
-v7.0 (performance pass): admin bootstrap runs once per instance instead of on every login; state polls reuse the already-loaded user and config (2 fewer blob reads per poll); name lookups share in-flight reads; rate-limit checks and hits run in parallel; client skips re-rendering when a poll returns unchanged state (no flicker, less DOM work), pauses polling while offline, and preconnects to font hosts.
-v7.1: new players (and existing players once) complete a 6-trait skill survey before using the app; the Me tab shows a Skill Trait Gram (radar chart). Self-assessed, stored on the user record, retake allowed every 14 days. It does not change Elo, XP or tiers.
-v7.2 (audit pass, see AUDIT.md): no default admin/admin; reserved names (admin, root, staff...) can't be registered; sign-up limit 40/hour per IP so a launch night on club Wi-Fi works; matchmaking fills every free court and, after 10 min, lets a short tier borrow players from one adjacent tier (never Beginner with Advanced); queued players' polls run matchmaking; coach student rosters survive booking-log trimming; logs trim dead records first; quests shuffle daily over 10 drills; existing admin/admin accounts are refused until ADMIN_PASSWORD is set (which then replaces it); admin can reset a forgotten password (temporary password, sessions revoked, lockout cleared); UI blocks double-submits, confirms destructive taps, one-tap student check-in, queue wait time, offline message, accessibility fixes; QR library served from /vendor (no third-party script host); CSP, HSTS and Permissions-Policy headers.
+---
 
-## Tests
-`npm install && npm test` (Node 20.6+). 43 tests run against an in-memory Netlify Blobs mock, so no Netlify account is needed:
-API scenarios (auth, ranked queue, scoring, disputes, coaching, bookings, quests, concurrency) and jsdom UI smoke tests of public/index.html.
+## 🚀 What Is This?
 
-v8.0 (club rating, modelled on how DUPR works): Elo is replaced by a 2.000-8.000 doubles rating. Before each game the two teams' average ratings predict each team's share of points; afterwards the rating moves by actual minus predicted share (so a narrow win can lower it and a close loss raise it), scaled by reliability, capped at 0.200 per game, with results against unrated players counting less and repeat groups (same 3+ players again within 12h) damped like their XP. New players are NR (not rated) with a provisional estimate from the skill survey, or a starting rating from a certified coach, until 3 initialization points or 7 days. Reliability (1-100%) comes from partner/opponent variety over the last 30 games and decays without play. All four players confirm a score; once both teams agree it counts after 15 minutes unless someone rejects it. Games to 11, 15 or 21. Tier ceilings cap XP only. New Players tab (search, club ranking, public profiles with match history). Existing Elo converts on read (1000 -> 3.000, 400 Elo = 1.0). New UI: rating-first design, getting-started guide for new players, scores entered from your own team's point of view.
+The platform is built around a simple loop:
 
+**Find players → Join a club → Play games → Record results → Build your rating → Improve your skills → Connect with the community**
 
-v8.1 (friends, chat, hosted open play):
-- Friends tab: add a player by username (or from their profile), they accept, then you can chat. Remove a friend, decline a request or cancel one you sent at any time; removing a friend deletes the chat. Unread counts show as a badge on the tab. 500 characters per message, 30 messages a minute, last 200 messages kept per chat, 200 friends max.
-- Open Play tab: any player can host an open play with a title, description, location, start time, price, max players, number of courts and games per player. Players join and pay the host directly (GCash or another e-wallet, same tracking-not-processing model as coach sessions): they send a reference number, the host marks them paid, and only paid players are scheduled. Free sessions skip payment.
-- When the host starts the games the app builds a randomized queue from the paid players: fewest games first, ties and teams split at random, so everyone gets at least the chosen number of games. Games fill the free courts in queue order and never put a player on two courts. Players or the host enter each score; the host can fix a score, take a game off court, or re-randomize the waiting queue. Players who pay late are added to the queue automatically. Ranking inside the open play: wins, then point difference, then points scored.
-- Game type: a host picks Casual (never changes ratings) or Ranked (needs 8+ paid players; when the host ends the session every game counts toward ratings and XP, in play order, exactly once). Hosts can add a court (up to 10) or add 1 game for every player (up to 20) at any time.
-- Data: friends under fr/<id>, chats under c/<idA>_<idB>, open plays in one "op" list. All writes use the same compare-and-swap helper as the rest of the API. test/social.test.mjs covers the new flows.
-v8.1 Home: the Home tab no longer has the location check-in or the ranked queue buttons. It shows your rating, your open plays and the ones starting soon (with Host an open play), unread messages and friend requests, upcoming bookings and your last result. A ranked match that was already running still shows its score flow. Ratings now come from ranked open plays.
+It combines ideas from:
 
-v8.2: Open Play tab is grouped into Upcoming (by date and time), Cancelled and Ended. Every player now has a personal match history across all open plays, casual and ranked: when a host ends a session each finished game is written to every player's own log (mh/<id>, last 500). Ranked games also show their rating change; casual ones show a Casual tag.
+* Club/community platforms
+* Open-play management
+* Player rating systems
+* Coaching platforms
+* Social networks
+* Gamification and progression systems
 
-v8.3 (clubs):
-- Any player or coach can create a club (3-30 characters, unique name, up to 5 owned per person) and join as many clubs as they like (300 members per club). Owners can remove players or delete the club (only when it has no open plays running); admins can do the same. The owner can't leave their own club.
-- Every open play belongs to a club: the host must pick one of their own clubs when publishing, and the club shows on the open play and on the club page. Open plays created before v8.3 have no club and keep working.
-- Players tab now has Players and Clubs side by side. The Clubs view has the club ranking, ordered by the average rating of each club's rated players (NR players are counted as members but not in the average; a player in several clubs counts in each). Tap a club for its players, open plays, and join/leave. Profiles and the Me tab list a player's clubs.
-- Data: one "cl" list (clubs with members); open plays store club and cn (club name). API actions: clubs, clubGet, clubCreate, clubJoin, clubLeave, clubKick, clubDelete. test/clubs.test.mjs covers them.
+The long-term goal is to become a **digital home for pickleball communities**.
 
-v8.4 (Club tab, leaderboard, group chats):
-- The Players tab is now **Leaderboard** (Players | Clubs ranking). Creating clubs moved out of it.
-- New **Club** tab: create a club, see My clubs and Find a club. Owners (and admins) can edit the name, place, description and **rules**, choose whether joining needs owner approval, choose whether only the owner can host open plays, approve or decline join requests, remove players, and delete the club. Rules are visible to everyone before they join. Renaming a club updates its open plays.
-- **Club group chat** on every club page, members only (last 200 messages kept, 500 characters, 30 messages a minute shared with friend chat).
-- **Open play group chat** on every open play, for the host and joined players. Leaving the open play or the club removes access. Chats of old open plays are deleted with the open play. API actions: gcGet, gcSend (kind club or op), clubUpdate, clubApprove, clubDecline.
+---
 
-v8.5 (UI): dark theme by default with a Light option (removed in v8.8: light theme only) (top bar, login screen, Me > Appearance; saved per device); pickleball-rolling loader on login, sign-up, saved-session resume and logout; adaptive layout (small phone, phone, tablet, desktop with side navigation, wide desktop).
+## ✨ Core Features
 
+### 🏆 Player Ratings
 
-v8.7 (look and profile pictures): dark theme accent is now gold #FEBC17 and every blue is gone (surfaces are neutral charcoal in both themes, avatar colours no longer use blue). Players can upload, change (move and zoom in a circle crop) and remove a profile picture on Me > Profile picture. The browser saves a 256 px JPEG; the server keeps it in the blob `av/<userId>` with a version stamp on the user (`av`). Photos show everywhere a player avatar appears and fall back to initials. API: actions setAvatar (img = data URL, max about 120 KB, 12 changes per hour) and removeAvatar; GET /api?avatar=<username>&v=<version> serves the image (public, cached for a year because the version is part of the URL; disabled users return 404).
+A dedicated doubles rating system designed around actual game performance.
 
-v8.8 (UI): dark/brand theme and the theme toggle button removed (also the Me > Appearance section); the app is light only. Group chat: black borders, message bubbles outlined in #FEBC17 (also the club group chat card). Login screen is compact and fits one screen with no scrolling: smaller logo beside the tagline, login form first, "How it works" shown only when there is room.
+The current rating system uses a **2.000–8.000 scale** and considers:
+
+* Team and opponent ratings
+* Expected vs. actual point performance
+* Rating reliability
+* Partner and opponent variety
+* Repeated-group dampening
+* Results against unrated players
+* Activity and inactivity
+
+The system is designed to reward **accurate competitive performance**, rather than simply counting wins and losses.
+
+A close win and a dominant win do not necessarily have the same rating impact.
+
+New players begin as **NR (Not Rated)** and can receive a provisional estimate through the skill survey or a certified coach.
+
+> **Rating measures competitive ability.**
+> **XP, tiers, and badges measure progression and engagement.**
+
+---
+
+### 🎾 Open Play
+
+Players can discover and join organized open-play sessions, while players and hosts can create their own.
+
+Hosts can configure:
+
+* Date and time
+* Location
+* Price
+* Maximum players
+* Number of courts
+* Games per player
+* Casual or Ranked format
+
+When play begins, the platform automatically manages the queue and distributes players across available courts.
+
+The system considers:
+
+* Games already played
+* Queue order
+* Team balancing
+* Available courts
+* Player conflicts
+
+Players are never scheduled on two courts simultaneously.
+
+Hosts can also:
+
+* Add courts
+* Add games
+* Re-randomize the queue
+* Correct scores
+* Remove games from play
+* Manage late payments
+
+### Casual vs. Ranked
+
+**Casual**
+
+Games are recorded but do not affect player ratings.
+
+**Ranked**
+
+Games contribute to player ratings and XP when the session is completed.
+
+---
+
+### 🏠 Clubs
+
+Players and coaches can create and join clubs.
+
+Each club can have:
+
+* Name
+* Location
+* Description
+* Rules
+* Members
+* Join approval
+* Club leaderboard
+* Group chat
+* Club open plays
+
+Club owners can manage membership and configure how their club operates.
+
+Players can belong to multiple clubs.
+
+Every open play can be associated with a club, creating a direct connection between:
+
+**Club → Community → Open Play → Games → Players**
+
+---
+
+### 👤 Player Profiles
+
+Players have a dedicated profile containing their pickleball identity and history.
+
+Profiles can include:
+
+* Profile picture
+* Rating
+* Rating history
+* Match history
+* Clubs
+* Skill traits
+* Progression
+* Results
+
+Players can discover other players through the leaderboard and player directory.
+
+---
+
+### 📊 Match History
+
+Every completed game can become part of a player's personal match history.
+
+Players can review:
+
+* Opponents
+* Partners
+* Scores
+* Results
+* Rating changes
+* Casual vs. Ranked games
+* Historical performance
+
+This creates a persistent record of a player's pickleball journey.
+
+---
+
+### 🧑‍🏫 Coaching & Development
+
+Certified coaches can publish:
+
+* Lessons
+* Clinics
+* Training sessions
+* Homework
+* Skill badges
+
+Players can complete a skill survey and track development over time.
+
+Coach verification adds a layer of human validation beyond self-assessment.
+
+The intended progression loop is:
+
+**Assess → Practice → Play → Improve → Get Verified → Level Up**
+
+---
+
+### 🎮 XP, Quests & Progression
+
+The platform includes a gamification layer designed to encourage consistent participation.
+
+Players can earn:
+
+* XP
+* Tiers
+* Daily quests
+* Skill badges
+* Coach-verified achievements
+
+XP farming and repeated-group exploitation are controlled through built-in limits and dampening.
+
+Progression is intentionally separate from competitive rating.
+
+---
+
+### 👥 Social Features
+
+Pickleball is highly social, so community interaction is built directly into the platform.
+
+Players can:
+
+* Add friends
+* Accept or decline requests
+* Send private messages
+* Participate in club group chats
+* Participate in open-play group chats
+* Discover other players
+* Track unread messages
+
+The goal is for the platform to become more than a scheduling tool.
+
+**It should help build the community itself.**
+
+---
+
+### 📅 Bookings
+
+Coaches and hosts can publish scheduled sessions.
+
+The platform supports:
+
+* Session calendars
+* Capacity limits
+* Duration
+* Schedule conflict detection
+* Upcoming-session reminders
+* `.ics` calendar reminders
+* Cancellations
+* Payment tracking
+
+The system checks for overlapping bookings for both players and coaches.
+
+---
+
+### 💳 Payment Tracking
+
+The current version supports **payment tracking, not payment processing**.
+
+For paid sessions:
+
+1. The player pays the host or coach directly.
+2. The player submits the payment reference.
+3. The host or coach verifies the payment.
+4. The player is marked as paid.
+5. Paid players enter the appropriate session queue.
+
+This currently supports GCash and other e-wallet workflows without requiring the platform to handle the actual transaction.
+
+---
+
+### 📱 QR Check-In
+
+Facilities can use rotating QR codes for player check-in.
+
+Players can:
+
+* Scan the QR code using their camera
+* Enter the code manually when necessary
+
+Administrators can configure facility and geofence settings.
+
+---
+
+## 🧠 Skill System
+
+New players complete a **6-trait skill survey** to establish an initial player profile.
+
+The survey is intentionally separate from the competitive rating.
+
+It helps the platform understand where a player currently sees themselves across different aspects of their game.
+
+The resulting profile can be used as a starting point for development and coaching.
+
+Players can retake the assessment periodically.
+
+---
+
+# 🛡️ Built for Real Usage
+
+Although this is a startup-stage application, the platform is designed with real multi-user usage in mind.
+
+### Authentication
+
+* Server-side password hashing using `scrypt`
+* Login rate limiting
+* Account disabling
+* Password reset
+* Session management
+* Optional Google Sign-In
+* Reserved username protection
+* Sign-up rate limiting
+
+### Data Integrity
+
+Shared records use optimistic **compare-and-swap** writes with automatic retries.
+
+This helps prevent race conditions such as:
+
+* Double bookings
+* Duplicate usernames
+* Double XP
+* Lost updates
+* Duplicate match processing
+* Lost invite tokens
+
+Match results are designed to be applied by exactly one request.
+
+### Application Security
+
+The application also uses:
+
+* Content Security Policy
+* HSTS
+* Permissions Policy
+* Input validation
+* Rate limiting
+* Destructive-action confirmations
+* Double-submit protection
+* Secure session handling
+
+---
+
+# ⚡ Performance & Reliability
+
+The application includes several optimizations intended to keep the experience responsive as usage increases.
+
+These include:
+
+* Reduced unnecessary data reads
+* Shared in-flight lookups
+* Adaptive polling
+* Client-side render optimization
+* Offline-aware polling
+* Service-worker caching controls
+* Race-free session initialization
+* Concurrency-safe writes
+
+The architecture remains intentionally lightweight for a startup-stage product.
+
+---
+
+# 🧪 Testing
+
+The project includes automated tests covering the major API and UI workflows.
+
+```bash
+npm install
+npm test
+```
+
+The test suite currently covers areas including:
+
+* Authentication
+* Ranked play
+* Rating and scoring
+* Match disputes
+* Coaching
+* Bookings
+* Quests
+* Open play
+* Clubs
+* Social features
+* Concurrency
+* UI smoke tests
+
+Tests use an in-memory Netlify Blobs mock, so the core scenarios can be tested without requiring a live Netlify account.
+
+---
+
+# 🏗️ Technology
+
+The application is intentionally built as a lightweight web platform.
+
+| Layer          | Technology            |
+| -------------- | --------------------- |
+| Frontend       | HTML, CSS, JavaScript |
+| Backend        | Netlify Functions     |
+| Data           | Netlify Blobs         |
+| Authentication | Server-side sessions  |
+| Hosting        | Netlify               |
+| Source Control | GitHub                |
+| Testing        | Node.js, jsdom        |
+
+The application can be deployed directly through GitHub and Netlify.
+
+---
+
+# ⚙️ Deployment
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure environment variables
+
+Required:
+
+```text
+ADMIN_PASSWORD
+```
+
+Optional:
+
+```text
+SESSION_SECRET
+GOOGLE_CLIENT_ID
+```
+
+### 3. Deploy
+
+Push the project to GitHub and connect the repository to Netlify.
+
+The application will use Netlify Functions and Netlify Blobs for its backend and persistent data.
+
+---
+
+# 🔐 Admin & Club Management
+
+Administrators can configure the platform through the admin interface, including:
+
+* Courts
+* Facility settings
+* Geofence
+* Coaches
+* User roles
+* Check-in
+* User management
+
+The platform uses three primary roles:
+
+* **Player**
+* **Certified Coach**
+* **Admin**
+
+---
+
+# 📈 Product Philosophy
+
+This project is intentionally being built as a **startup MVP rather than a finished enterprise product**.
+
+The priority is not to build every possible feature before anyone uses it.
+
+The priority is:
+
+> **Build → Launch → Let players use it → Learn → Improve → Repeat**
+
+The current feature set provides enough of the core ecosystem to begin validating how real pickleball communities organize, play, compete, communicate, and improve.
+
+Some features will change.
+
+Some will be removed.
+
+Some will become much more important than originally expected.
+
+That is part of building an early-stage product.
+
+---
+
+# 🗺️ What's Next?
+
+The platform has a foundation for expanding into areas such as:
+
+* Tournament management
+* Advanced player analytics
+* Automated payment processing
+* More powerful coaching tools
+* Club subscriptions
+* Venue management
+* Native mobile applications
+* Improved matchmaking
+* Regional leaderboards
+* National rankings
+* Community discovery
+* Advanced player development
+
+These are directions rather than promises.
+
+The immediate objective is **real-world validation and adoption**.
+
+---
+
+# 🎯 The Vision
+
+Pickleball is more than a sport.
+
+It's a network of players, clubs, coaches, courts, games, competitions, friendships, and communities.
+
+The vision of this platform is to connect all of those pieces.
+
+### From finding your next game...
+
+### to becoming a better player.
+
+### From joining a club...
+
+### to building a community.
+
+### From playing your first match...
+
+### to knowing exactly how far you've come.
+
+**Play. Improve. Connect. Level Up.**
+
+---
+
+## 🚧 Project Status
+
+**Startup / Early MVP — Actively Developing**
+
+The platform is functional, but it is still under active development and should be considered an evolving product rather than a production-scale commercial service.
+
+Features, architecture, rating logic, and user experience may continue to change as the product is tested with real players and communities.
+
+---
+
+## 📄 Documentation
+
+Detailed engineering notes, version history, security audits, and implementation changes are maintained separately from this README.
+
+For the main product experience, start with the application itself.
