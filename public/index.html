@@ -40,6 +40,15 @@ a{color:var(--gt)}
 .hero .who{position:relative;display:flex;align-items:center;gap:12px}
 .hero .who b{font:700 clamp(24px,6vw,30px)/1.1 var(--disp)}
 .hero .who .lv{color:var(--hdr-mute);font-size:14px}
+/* cover photo: sits under the hero content, with a dark scrim so the white text stays readable in any theme */
+.hero .cvr{position:absolute;inset:0;pointer-events:none}
+.hero .cvr img{display:block;width:100%;height:100%;object-fit:cover}
+.hero .cvr::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.30),rgba(0,0,0,.68))}
+.hero.hascv{--hdr-text:#fff;--hdr-mute:rgba(255,255,255,.86);--hdr-line:rgba(255,255,255,.32);background:#2a2a2a}
+.hero.hascv svg.court{display:none}
+.hero.hascv>:not(.cvr){position:relative}
+.cvp{aspect-ratio:5/2;border-radius:12px;overflow:hidden;background:var(--soft);display:grid;place-items:center;color:var(--muted);font:600 14px var(--disp);margin:0 0 10px}
+.cvp img{display:block;width:100%;height:100%;object-fit:cover}
 .rating{position:relative;display:flex;align-items:flex-end;gap:14px;margin-top:14px}
 .rating .num{font:700 clamp(64px,17vw,96px)/.85 var(--disp);letter-spacing:-.01em}
 .rating .num small{font-size:.62em;font-weight:600;color:var(--hdr-mute)}
@@ -104,6 +113,7 @@ label.chk input{min-height:0;margin:0}
 .cbox{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:16px;padding:18px;width:min(100%,360px);text-align:center}
 .cbox canvas{display:block;margin:6px auto 12px;width:280px;max-width:100%;aspect-ratio:1;border-radius:50%;touch-action:none;cursor:grab;background:var(--soft);box-shadow:0 0 0 3px var(--text)}
 .cbox input[type=range]{accent-color:var(--text);padding:0;min-height:30px;background:none;border:0}
+.cbox canvas.wide{width:100%;aspect-ratio:5/2;border-radius:12px;box-shadow:0 0 0 2px var(--text)}
 .cbtn{display:flex;gap:8px;justify-content:center;margin-top:6px}.cbtn .btn{margin:4px 0;flex:1}
 .chip{display:inline-block;font:600 13px/1.6 var(--disp);border-radius:999px;padding:0 10px;background:var(--soft);color:var(--text);margin-right:4px}
 .chip.on{background:var(--btn);color:var(--btn-text)}
@@ -248,7 +258,10 @@ body.chatting .app,body.chatting.nav .app{padding-bottom:0}
 .welcome .hero{flex:none;display:flex;align-items:center;gap:16px;padding:calc(14px + env(safe-area-inset-top,0px)) 20px 14px}
 .welcome h1{position:relative;margin:0}
 .welcome h1.logo{line-height:0;flex:none}.welcome h1.logo img{display:block;width:clamp(76px,22vw,104px);height:auto;border-radius:18px}
-.welcome .hero p{position:relative;color:var(--hdr-text);font:600 clamp(18px,5vw,22px)/1.2 var(--disp);max-width:20ch;margin:0}
+.welcome .hero p{position:relative;color:var(--hdr-text);font:600 clamp(18px,5vw,22px)/1.2 var(--disp);max-width:20ch;margin:0;background:rgba(255,253,248,.93);padding:6px 12px;border-radius:12px}
+/* doodle wallpaper: phones get a smaller file, and it only fills the header part */
+.welcome .hero{background:var(--hdr) url(bg-welcome-sm.webp) center/cover no-repeat}
+.welcome .hero svg.court{display:none}
 .welcome .side{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-start;padding-top:4px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
 .welcome .side .sheet:first-child{order:2}
 .welcome .side .sheet:last-child{order:1}
@@ -304,7 +317,7 @@ body.busy .app [data-a]:not([data-a=tab]):not([data-a=logout]):not([data-a=qrOff
   .hero{padding:24px 24px 28px}.rating .num{font-size:92px}
   .stats b{font-size:26px}.bar{padding-left:24px;padding-right:24px}
   .tabs button{font-size:14px;padding:10px 2px 12px}.tabs svg{width:24px;height:24px}
-  .welcome .hero{padding:28px 32px 20px}.welcome h1.logo img{width:120px}
+  .welcome .hero{padding:28px 32px 20px;background-image:url(bg-welcome.webp)}.welcome h1.logo img{width:120px}
 }
 /* desktop: side navigation, wider reading column, login split in two */
 @media(min-width:1024px){
@@ -318,9 +331,9 @@ body.busy .app [data-a]:not([data-a=tab]):not([data-a=logout]):not([data-a=qrOff
   body.nav .bdg{position:static;margin-left:auto}
   body.nav .toast{left:calc(50% + 112px);bottom:28px}
   .sheet{margin:18px 24px 0}.sheet.flat{margin:0}
-  .welcome{flex-direction:row;align-items:stretch}
-  .welcome .hero{flex:1.1;flex-direction:column;justify-content:center;align-items:flex-start;gap:20px;padding:48px 56px}
-  .welcome h1.logo img{width:200px;border-radius:28px}.welcome .hero p{font-size:26px;max-width:22ch}
+  .welcome{flex-direction:row;align-items:stretch;background:var(--bg) url(bg-welcome.webp) center/cover no-repeat}
+  .welcome .hero{flex:1.1;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:24px;padding:48px 56px;background:none}
+  .welcome h1.logo img{width:270px;border-radius:32px;box-shadow:0 10px 30px rgba(0,0,0,.18)}.welcome .hero p{font-size:26px;max-width:22ch;padding:10px 20px;border-radius:16px}
   .welcome .side{flex:1;justify-content:center;max-width:560px;padding:24px 24px 24px 0}
   .welcome .side .sheet:first-child{order:1;display:block}.welcome .side .sheet:last-child{order:2}
   .welcome .side .sheet{margin:12px 0 0}
@@ -336,7 +349,7 @@ body.busy .app [data-a]:not([data-a=tab]):not([data-a=logout]):not([data-a=qrOff
 <div class="app" id="app"></div>
 <script>
 const $=s=>document.querySelector(s);
-let T=localStorage.getItem("pt"),S=null,tab="play",toast="",toastBad=false,authMode="login",GID=(()=>{try{return localStorage.getItem("gid")}catch(_){return null}})(),gtry=false,gsiOn=false,gpend=null,qrText="",qrCode="",showQr=false,calDay=null;
+let T=localStorage.getItem("pt"),S=null,tab="play",toast="",toastBad=false,authMode="login",GID=(()=>{try{return localStorage.getItem("gid")}catch(_){return null}})(),gtry=false,gsiOn=false,gpend=null,qrText="",qrCode="",qrFor=null,calDay=null;
 let ov=null,cv=null,OD={},C={},hostForm=false,lastOd=null,sending=false;// ov = open play being viewed, cv = friend whose chat is open, OD = open play details, C = chat messages
 let cl=null,CD={},CB=null,CBs=0,GV={},FLY=new Set(),pv="players",clubForm=false,clubEdit=null,hostClub=null,lastClub=null,GC={};// cl = club being viewed, CD = club details, CB = club ranking, pv = Players tab view
 let view=null,P={},PL=null,pq0="";// view = player id when a profile is open; P = profile cache; PL = directory results
@@ -393,6 +406,9 @@ const avVer=n=>S?((S.me&&S.me.username===n?S.me.av:S.avs&&S.avs[n])||0):0;
 const av=(n,lg,ver)=>{let h=0;for(const ch of String(n))h=(h*31+ch.charCodeAt(0))>>>0;const ini=String(n).replace(/[^A-Za-z0-9]/g,"").slice(0,2).toUpperCase()||"?",a=ver!==undefined?ver:avVer(n),
   im=a?`<img src="/api?avatar=${encodeURIComponent(n)}&v=${a}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`:"";
   return`<span class="av${lg===2?" xl":lg?" lg":""}" style="--c:${HUES[h%HUES.length]}" aria-hidden="true">${esc(ini)}${im}</span>`};
+// cover photo layer for a hero: kind "cover" (key = username) or "clubcover" (key = club id); ver 0 = none.
+// If the image fails to load, the layer is dropped and the hero goes back to its normal look.
+const coverTag=(kind,key,ver)=>ver?`<div class="cvr" aria-hidden="true"><img src="/api?${kind}=${encodeURIComponent(key)}&v=${ver}" alt="" decoding="async" onerror="var h=this.closest('.hero');if(h)h.classList.remove('hascv');this.parentNode.remove()"></div>`:"";
 const COURT=`<svg class="court" viewBox="0 0 440 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><g fill="none" stroke="#fff" stroke-width="2"><rect x="10" y="10" width="420" height="180"/><line x1="220" y1="4" x2="220" y2="196" stroke-dasharray="6 5"/><line x1="150" y1="10" x2="150" y2="190"/><line x1="290" y1="10" x2="290" y2="190"/><line x1="10" y1="100" x2="150" y2="100"/><line x1="290" y1="100" x2="430" y2="100"/></g></svg>`;
 const ICON={club:'<path d="M4 20V9.5L12 4l8 5.5V20"/><path d="M9 20v-6h6v6"/>',play:'<path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 0v18M3 12h18"/>',players:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 14.6c2.9.1 4.9 1.8 5.5 4.9"/>',cal:'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',quests:'<path d="M5 4h14v16l-7-4-7 4z"/>',me:'<circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 3.9-6.5 8-6.5s7.2 2.3 8 6.5"/>',coach:'<path d="M4 18V8l8-4 8 4v10"/><path d="M9 21v-6h6v6"/>',open:'<circle cx="12" cy="12" r="9"/><path d="M4.5 8.5c5 1.5 10 1.5 15 0M4.5 15.5c5-1.5 10-1.5 15 0"/>',friends:'<path d="M4 5h16v11H9l-5 4z"/>',admin:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>'};
 const ic=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[k]}</svg>`;
@@ -411,9 +427,14 @@ function say(m,bad){toast=m||"";toastBad=!!bad;clearTimeout(toastT);if(m)toastT=
 let lastJ="";
 async function load(poll){const n=++seq;let same=false;try{const j=await api("state");if(n===seq){const k=JSON.stringify({...j,msg:0,match:j.match&&{...j.match,now:0}});same=poll&&k===lastJ;if(j.match)same=false;// a live game always redraws so its clock moves
 lastJ=k;S=j;S._recv=Date.now()}}catch(e){}if(!same)draw(poll);ciPending()}
-// a facility QR scanned before logging in is kept until the app is free to check the player in
-function ciPending(){const c=sessionStorage.getItem("ci");if(c&&T&&S&&!busy){sessionStorage.removeItem("ci");run("checkin",{code:c})}}
-async function refreshQr(poll){try{const j=await api("qrCode");qrCode=j.code;qrText=location.origin+"/?ci="+j.code}catch(e){say(e.message,1)}draw(poll)}
+// A check-in QR scanned before logging in is kept until the app is free. Links look like /?ci=o.<open play>.<code> or /?ci=b.<session>.<code>.
+function ciPending(){const c=sessionStorage.getItem("ci");if(!(c&&T&&S&&!busy))return;sessionStorage.removeItem("ci");const[k,id,code]=c.split(".");if(!id||!code)return;
+  if(k==="o"){tab="open";ov=id;cv=null;view=null;cl=null;run("opCheckin",{id,code}).then(()=>{if(!OD[id])opLoad(id)})}
+  else if(k==="b"){tab="cal";ov=null;view=null;run("bkCheckin",{sid:id,code})}}
+// The host's phone (open play) or the coach's phone (a booked session) shows a code that changes every minute.
+async function refreshQr(poll){const f=qrFor;if(!f)return;const[k,id]=f.split(":");
+  try{const j=await api(k==="o"?"opCode":"sesCode",k==="o"?{id}:{sid:id});if(qrFor!==f)return;qrCode=j.code;qrText=location.origin+"/?ci="+k+"."+id+"."+j.code}
+  catch(e){say(e.message,1);qrFor=null}draw(poll)}
 async function getProfile(id){if(P[id])return;P[id]="loading";try{P[id]=(await api("profile",{id})).profile}catch(e){P[id]={err:e.message}}draw(true)}
 async function searchPlayers(q){pq0=q;try{const j=await api("players",{q});if(q===pq0){PL=j.players;draw(true)}}catch(e){}}
 
@@ -456,12 +477,6 @@ async function gLogin(cred,name,pw){
   finally{await hideLoader();setBusy(false)}
   if(!gpend)ciPending();else draw();
 }
-function geo(){
-  say("Checking your location...");draw();
-  const go=(lat,lng)=>run("checkin",{lat,lng});
-  if(!navigator.geolocation)return go();
-  navigator.geolocation.getCurrentPosition(p=>go(p.coords.latitude,p.coords.longitude),()=>go(),{enableHighAccuracy:true,timeout:8000});
-}
 const TR=[["Serve","Getting the ball in play","Mostly in, no placement","Consistent, some placement","Placed and varied","Deep, targeted, with spin"],
 ["Return","Returning the serve","Often miss","Usually get it back","Deep and steady","Deep, aimed, rarely miss"],
 ["Dinking","Soft game at the kitchen line","Pop balls up","Some rallies of 5+","Rallies of 10+","Controlled, placed, patient"],
@@ -494,7 +509,8 @@ const A={
   clubDelete:x=>ask("Delete this club for good? Players are removed from it. You can only do this when it has no open plays running.")&&run("clubDelete",{id:x}).then(()=>{if(!toastBad){delete CD[x];delete GC["club:"+x];cl=null;clubEdit=null;draw();scrollTo(0,0)}}),
   ov:x=>{ov=x;cv=null;view=null;draw();scrollTo(0,0);opLoad(x)},
   opCreate:()=>{const w=v("o_w");run("opCreate",{club:v("o_b"),title:v("o_t"),loc:v("o_l"),desc:v("o_d"),ts:w?new Date(w).getTime():0,dur:+v("o_m"),price:+v("o_p"),cap:+v("o_c"),courts:+v("o_n"),rounds:+v("o_r"),pay:v("o_y"),mode:v("o_k")}).then(()=>{if(!toastBad&&lastOd){hostForm=false;ov=lastOd;draw();scrollTo(0,0)}})},
-  opJoin:x=>run("opJoin",{id:x}),opLeave:x=>ask("Leave this open play? If you already paid, ask the host for a refund.")&&run("opLeave",{id:x}),
+  opJoin:x=>run("opJoin",{id:x}),opLeave:x=>ask("Leave this open play? If you already paid, ask the host for a refund. If you rejoin before that, your payment still counts.")&&run("opLeave",{id:x}),
+  opRefund:x=>{const p=((OD[ov]||{}).pl||[]).find(z=>z.id===x);ask(`Mark ${p?p.n:"this player"} as refunded? Only do this after you have paid them back. They will need to pay again to rejoin.`)&&run("opRefund",{id:ov,pid:x})},
   opRef:x=>run("opRef",{id:x,ref:v("or"+x)}),
   opPaid:x=>run("opPaid",{id:ov,pid:x}),
   opKick:x=>{const p=((OD[ov]||{}).pl||[]).find(z=>z.id===x);ask(`Remove ${p?p.n:"this player"} from the open play?`)&&run("opKick",{id:ov,pid:x})},
@@ -505,7 +521,9 @@ const A={
   opEnd:x=>ask("End this open play? The final ranking is saved and the waiting games are cleared."+((OD[ov]||{}).mode==="ranked"?" Ranked games will now change player ratings.":""))&&run("opEnd",{id:x}),
   opCancel:x=>ask("Cancel this open play? Refund anyone who already paid.")&&run("opCancel",{id:x}),
   sv:()=>run("survey",{v:[0,1,2,3,4,5].map(i=>+v("sk"+i))}).then(ran=>{if(ran&&!toastBad)rtk=false;draw()}),svx:()=>{rtk=false;draw()},rt:()=>{rtk=true;draw()},
-  checkin:()=>busy?0:S.qr?run("checkin",{code:v("fc")}):geo(),qrOn:async()=>{showQr=true;await refreshQr()},qrOff:()=>{showQr=false;draw()},join:()=>run("join"),leave:()=>run("leave"),
+  qrOn:async x=>{qrFor=x;qrCode="";qrText="";draw();await refreshQr()},qrOff:()=>{qrFor=null;draw()},
+  opIn:x=>run("opCheckin",{id:x,code:v("oc"+x)}),opOut:x=>{const p=((OD[ov]||{}).pl||[]).find(z=>z.id===x);ask(`Check out ${p?p.n:"this player"}? Their waiting games are removed. Games already finished still count, and they can scan the code again to come back.`)&&run("opCheckout",{id:ov,pid:x})},opArrive:x=>run("opArrive",{id:ov,pid:x}),bkIn:x=>run("bkCheckin",{sid:x,code:v("bc"+x)}),
+  join:()=>run("join"),leave:()=>run("leave"),
   claim:x=>run("claim",{qid:x}),book:x=>run("book",{sessionId:x}),cancel:x=>ask("Cancel this booking?")&&run("cancel",{id:x}),day:x=>{calDay=x||null;draw()},ics,ref:x=>run("ref",{id:x,ref:v("rf"+x)}),setPay:()=>run("setPay",{text:v("cp")}),
   addSession:()=>{const w=v("sw");run("addSession",{kind:v("sk"),ts:w?new Date(w).getTime():0,title:v("st"),price:+v("sp"),cap:+v("sc"),dur:+v("sd")})},
   cancelSession:x=>{const n=(S.coach.sessions.find(s=>s.id===x)||{}).booked|0;ask(n?`Cancel this session? ${n} booked player${n===1?"":"s"} will lose their spot.`:"Cancel this session?")&&run("cancelSession",{sid:x})},paid:x=>run("paid",{id:x}),
@@ -521,15 +539,17 @@ const A={
   approve:x=>run("approve",{id:x}),
   setRole:x=>{const r=v("r"+x);(r!=="admin"||ask("Give this user full admin access?"))&&run("setRole",{id:x,role:r})},resetElo:x=>ask("Reset this player's rating? They go back to NR and re-initialize.")&&run("resetElo",{id:x}),
   resolve:x=>run("resolve",{matchId:x,a:+v("ra"+x),b:+v("rb"+x)}),
-  setCfg:()=>run("setCfg",{qr:document.getElementById("cq").checked,tz:v("ct"),courts:v("cc"),lat:v("cl"),lng:v("cn"),rad:v("cr"),minMin:v("cm")}),
+  setCfg:()=>run("setCfg",{tz:v("ct"),courts:v("cc"),lat:v("cl"),lng:v("cn"),rad:v("cr"),minMin:v("cm")}),
   pw:async()=>{const n=v("np");if(n.length<6){say("Use 6 or more characters.",1);return draw()}
     if(!(await run("changePw",{oldPw:v("op"),newPw:n})))return;["op","np"].forEach(i=>{const e=document.getElementById(i);if(e)e.value=""})},
   setDisabled:x=>{const u=(S.admin.users||[]).find(u=>u.id===x);if(u&&(u.disabled||ask(`Disable ${u.username}? They will be logged out and removed from the queue.`)))run("setDisabled",{id:x,disabled:!u.disabled})},
   resetPw:x=>{const u=(S.admin.users||[]).find(u=>u.id===x);if(u&&ask(`Reset ${u.username}'s password? They'll be logged out and need the temporary password you'll see next.`))run("resetPw",{id:x})},
   voidMatch:x=>ask("Void this match? No rating or XP will change.")&&run("voidMatch",{matchId:x}),invite:()=>run("invite"),redeem:()=>run("redeem",{token:v("tk")}),
   avPick:()=>pickAvatar(),avRemove:()=>ask("Remove your profile picture?")&&run("removeAvatar"),
+  cvPick:()=>pickCover("setCover",{},"Adjust cover photo"),cvRemove:()=>ask("Remove your cover photo?")&&run("removeCover"),
+  clubCvPick:x=>pickCover("clubSetCover",{id:x},"Adjust club cover photo"),clubCvRemove:x=>ask("Remove this club's cover photo?")&&run("clubRemoveCover",{id:x}),
   logout:async()=>{if(busy)return;setBusy(true);showLoader("Logging out");await new Promise(r=>setTimeout(r,900));
-    T=null;S=null;P={};CD={};GC={};CB=null;cl=null;clubEdit=null;PL=null;view=null;showQr=false;calDay=null;tab="play";localStorage.removeItem("pt");draw();scrollTo(0,0);await hideLoader(0);setBusy(false)},auth,
+    T=null;S=null;P={};CD={};GC={};CB=null;cl=null;clubEdit=null;PL=null;view=null;qrFor=null;calDay=null;tab="play";localStorage.removeItem("pt");draw();scrollTo(0,0);await hideLoader(0);setBusy(false)},auth,
   mode:()=>{authMode=authMode==="login"?"reg":"login";draw()},
   gname:()=>{if(!gpend)return;const p=v("gp");if(p.length<6){say("Use a password of 6 or more characters.",1);return draw()}gLogin(gpend.cred,v("gu").trim(),p)},gcancel:()=>{gpend=null;draw()},
   prof:x=>{if(x===S.me.id){view=null;tab="me"}else view=x;draw();scrollTo(0,0)},
@@ -569,6 +589,37 @@ async function cropAvatar(file){
     let q=.86,url=out.toDataURL("image/jpeg",q);while(url.length>110000&&q>.4){q-=.12;url=out.toDataURL("image/jpeg",q)}
     close();await run("setAvatar",{img:url})});
   zr.focus()}
+// ---- cover photo (players, coaches and club owners): move and zoom inside a wide frame, save a 1200x480 JPEG ----
+function pickCover(action,extra,title){let f=document.getElementById("cvf");
+  if(!f){f=document.createElement("input");f.type="file";f.id="cvf";f.accept="image/*";f.hidden=true;document.body.appendChild(f)}
+  f.onchange=()=>{const x=f.files&&f.files[0];f.value="";if(x)cropCover(x,action,extra,title)};
+  f.click()}
+async function cropCover(file,action,extra,title){
+  if(!/^image\//.test(file.type)){say("Choose an image file.",1);return draw()}
+  if(file.size>25e6){say("That photo is too large. Choose one under 25 MB.",1);return draw()}
+  let img;try{img=await bitmapOf(file)}catch(_){say("Couldn't read that image. Try a JPEG or PNG.",1);return draw()}
+  const OW=1200,OH=480,BW=320,BH=128,W=img.width,H=img.height,base=Math.max(BW/W,BH/H);let z=1,x=0,y=0;// x,y: image centre relative to the frame centre
+  const o=document.createElement("div"),prev=document.activeElement;o.className="crop";o.setAttribute("role","dialog");o.setAttribute("aria-modal","true");o.setAttribute("aria-label",title);
+  o.innerHTML=`<div class="cbox"><h2>${esc(title)}</h2><p class="sub">Drag to move. Use the slider to zoom.</p><canvas class="wide" width="${BW}" height="${BH}"></canvas><input type="range" min="1" max="4" step="0.01" value="1" class="w100" aria-label="Zoom"><div class="cbtn"><button class="btn g" type="button" data-c="x">Cancel</button><button class="btn" type="button" data-c="ok">Save cover photo</button></div></div>`;
+  document.body.appendChild(o);
+  const cv=o.querySelector("canvas"),g=cv.getContext("2d"),zr=o.querySelector("input");
+  const clamp=()=>{const mx=Math.max(0,(W*base*z-BW)/2),my=Math.max(0,(H*base*z-BH)/2);x=Math.max(-mx,Math.min(mx,x));y=Math.max(-my,Math.min(my,y))};
+  const paint=(c,k)=>{const w=W*base*z*k,h=H*base*z*k;c.fillStyle="#222";c.fillRect(0,0,BW*k,BH*k);c.drawImage(img,BW*k/2+x*k-w/2,BH*k/2+y*k-h/2,w,h)};
+  const show=()=>{clamp();paint(g,1)};show();
+  let d=null;
+  cv.addEventListener("pointerdown",e=>{d={x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId);cv.style.cursor="grabbing"});
+  cv.addEventListener("pointermove",e=>{if(!d)return;const k=BW/cv.getBoundingClientRect().width;x+=(e.clientX-d.x)*k;y+=(e.clientY-d.y)*k;d={x:e.clientX,y:e.clientY};show()});
+  const up=()=>{d=null;cv.style.cursor=""};cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
+  cv.addEventListener("wheel",e=>{e.preventDefault();zr.value=Math.max(1,Math.min(4,+zr.value-e.deltaY/500));zr.dispatchEvent(new Event("input"))},{passive:false});
+  zr.addEventListener("input",()=>{z=+zr.value;show()});
+  const close=()=>{document.removeEventListener("keydown",esc2);o.remove();if(img.close)img.close();if(prev&&prev.focus)prev.focus()};
+  const esc2=e=>{if(e.key==="Escape")close()};document.addEventListener("keydown",esc2);
+  o.addEventListener("click",async e=>{const c=e.target.closest("[data-c]");if(!c&&e.target===o)return close();if(!c)return;
+    if(c.dataset.c==="x")return close();
+    const out=document.createElement("canvas");out.width=OW;out.height=OH;paint(out.getContext("2d"),OW/BW);
+    let q=.85,url=out.toDataURL("image/jpeg",q);while(url.length>280000&&q>.4){q-=.1;url=out.toDataURL("image/jpeg",q)}
+    close();await run(action,{...extra,img:url})});
+  zr.focus()}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(b&&A[b.dataset.a])A[b.dataset.a](b.dataset.v)});
 const okScore=(x,y)=>{const hi=Math.max(x,y),lo=Math.min(x,y);return x>=0&&y>=0&&hi-lo>=2&&([11,15,21].includes(hi)||(hi>11&&hi-lo===2))};
 function preview(){const p=document.getElementById("spv");if(!p)return;const a=v("sa"),b=v("sb");
@@ -598,7 +649,7 @@ function hero(p,{self,back}={}){
   const nr=p.r==null,games=(p.w|0)+(p.l|0),rel=p.rel|0;
   const relTxt=nr?(self?`<b>NR means not rated yet.</b> Your estimate is ${fmtR(p.pr)}. Play about ${Math.max(1,Math.ceil(3-(p.ip||0)))} more game${Math.ceil(3-(p.ip||0))===1?"":"s"} against rated players to get your official rating.`:`<b>Not rated yet.</b> Estimated ${fmtR(p.pr)} from ${(p.w|0)+(p.l|0)} game${(p.w|0)+(p.l|0)===1?"":"s"}.`)
     :rel===0?`<b>Reliability builds as you play.</b> ${self?"Play a few games with different partners and opponents.":"No recent games yet."}`:rel>=60?`<b>${rel}% reliable.</b> This rating is well established.`:`<b>${rel}% reliable.</b> ${self?"Play with more different partners and opponents to make your rating more reliable.":"Still settling in."}`;
-  return `<div class="hero">${COURT}${back?`<button class="back" data-a="back">&lsaquo; Back</button>`:""}
+  return `<div class="hero${p.cv?" hascv":""}">${coverTag("cover",p.n,p.cv)}${COURT}${back?`<button class="back" data-a="back">&lsaquo; Back</button>`:""}
   <div class="who">${av(p.n,1,p.a??p.av??0)}<div><b>${esc(p.n)}</b><div class="lv">${esc(levelOf(p.r))}${p.coach?", certified coach":""}${p.src==="coach"?", coach-rated start":""}</div></div></div>
   <div class="rating">${bigR(p.r)}<div class="side"><b>Doubles</b>club rating</div></div>
   <div class="rel"><div class="track"><i style="width:${nr?0:rel}%"></i></div><p>${relTxt}</p></div>
@@ -616,7 +667,7 @@ function play(){
   let h=hero({...S.me,n:S.me.username,t:S.me.tier,coach:S.me.role==="certified_coach"},{self:1});
   if(m)h+=matchCard(m); // a ranked match that was already running before open play sessions: keep its score flow
   h+=homeOpen()+homeFriends()+guide();
-  if(nb)h+=`<div class="sheet"><h2>Coming up</h2><p>${esc(nb.title)} with ${esc(nb.cn)}, ${when(nb.ts)}</p><p class="m">Check-in code <b>${nb.id}</b></p></div>`;
+  if(nb)h+=`<div class="sheet"><h2>Coming up</h2><p>${esc(nb.title)} with ${esc(nb.cn)}, ${when(nb.ts)}</p><p class="m">When you arrive, scan the QR code on your coach's phone to check in.</p></div>`;
   if(S.me.last)h+=`<div class="sheet"><h2>Last result</h2><p class="delta">${esc(S.me.last)}</p></div>`;
   return h;
 }
@@ -805,11 +856,11 @@ async function chatPump(key){
 const gcSend=()=>{const k=cCur();if(k&&!isF(k))chatSend(k)},sendMsg=()=>{const k=cCur();if(k&&isF(k))chatSend(k)};
 function chatRetry(k){for(const key in PEND){const p=PEND[key].find(x=>x._k===k);if(p){p.st="s";p.t=Date.now();PEND[key]=PEND[key].filter(x=>x!==p).concat(p);chatPaint(key,true);chatPump(key);return}}}
 function clubView(id){
-  const k=CD[id],head=`<div class="hero">${COURT}<button class="back" data-a="back">&lsaquo; Back</button>`;
+  const k=CD[id],kc=k&&k!=="loading"&&k.cv?k.cv:0,head=`<div class="hero${kc?" hascv":""}">${coverTag("clubcover",id,kc)}${COURT}<button class="back" data-a="back">&lsaquo; Back</button>`;
   if(!k||k==="loading")return head+`<p style="position:relative">Loading club...</p></div>`;
   if(clubEdit===id)return `${head}<div class="who"><div><b>Edit club</b><div class="lv">${esc(k.n)}</div></div></div></div><div class="sheet">${clubFormHtml(k)}<button class="btn big" data-a="clubSave" data-v="${k.id}">Save changes</button><button class="btn g" data-a="clubEditOff">Cancel</button></div>`;
   const join=k.joined?(k.isOwner?"":`<button class="btn w" data-a="clubLeave" data-v="${k.id}">Leave club</button>`):k.requested?`<span class="tag">Request sent</span> <button class="btn g" data-a="clubLeave" data-v="${k.id}">Cancel request</button>`:`<button class="btn big ball" data-a="clubJoin" data-v="${k.id}">${k.ap?"Ask to join":"Join this club"}</button>`;
-  const mgr=k.mgr?`<button class="btn g" data-a="clubEditOn" data-v="${k.id}">Edit club and rules</button><button class="btn w" data-a="clubDelete" data-v="${k.id}">Delete club</button>`:"";
+  const mgr=k.mgr?`<button class="btn g" data-a="clubCvPick" data-v="${k.id}">${k.cv?"Change cover photo":"Add cover photo"}</button>${k.cv?`<button class="btn w" data-a="clubCvRemove" data-v="${k.id}">Remove cover photo</button>`:""}<button class="btn g" data-a="clubEditOn" data-v="${k.id}">Edit club and rules</button><button class="btn w" data-a="clubDelete" data-v="${k.id}">Delete club</button>`:"";
   const host=k.joined?(k.canHost?`<button class="btn" data-a="hostFor" data-v="${k.id}">Host an open play</button>`:`<p class="m">Only the owner hosts open plays for this club.</p>`):"";
   const reqs=k.rq.length?`<div class="sheet"><h2>Join requests</h2>${opts(k.rq,r=>`<div class="row">${av(r.n)}<div class="g1"><button class="linkbtn" data-a="prof" data-v="${r.id}">${esc(r.n)}</button><div class="m">${day(r.at)}</div></div><button class="btn" data-a="clubApprove" data-v="${r.id}">Approve</button><button class="btn w" data-a="clubDecline" data-v="${r.id}">Decline</button></div>`)}</div>`:"";
   return `${head}<div class="who"><div><b>${esc(k.n)}</b><div class="lv">Owner ${esc(k.on)}, ${k.m} player${k.m===1?"":"s"}${k.loc?" · "+esc(k.loc):""}</div></div></div></div>
@@ -890,31 +941,33 @@ function opView(id){
   const e=OD[id],head=`<div class="hero">${COURT}<button class="back" data-a="back">&lsaquo; Back</button>`;
   if(!e)return head+`<p style="position:relative">Loading open play...</p></div>`;
   const N=Object.fromEntries(e.pl.map(p=>[p.id,p.n])),nm=i=>N[i]||"Player",me=S.me.id,live=e.st==="live",done=e.st==="ended";
-  const paidN=e.pl.filter(p=>p.paid&&!p.left).length,mineP=e.pl.find(p=>p.me&&!p.left),full=e.pl.filter(p=>!p.left).length>=e.cap;
+  const paidN=e.pl.filter(p=>p.paid&&!p.left&&p.here).length,mineP=e.pl.find(p=>p.me&&!p.left),full=e.pl.filter(p=>!p.left).length>=e.cap;
   const team=ids=>`<div class="team">${ids.map(i=>`<div class="pl">${av(nm(i))}<div><b>${esc(nm(i))}${i===me?" (you)":""}</b></div></div>`).join("")}</div>`;
   const on=e.g.filter(g=>g.st==="p").sort((a,b)=>a.c-b.c),q=e.g.filter(g=>g.st==="q"),fin=e.g.filter(g=>g.st==="d").reverse();
   // where am I next?
-  let next="";if(live&&mineP&&mineP.paid){const g=on.find(x=>x.p.includes(me));if(g)next=`<div class="note"><b>You're on Court ${g.c} now.</b> Enter the score when the game ends.</div>`;else{const k=q.findIndex(x=>x.p.includes(me));next=k>=0?`<div class="note"><b>Your next game is #${k+1} in the queue.</b>${k<e.courts?" Get ready.":""}</div>`:`<div class="note">You've played all your games. Waiting for the others to finish.</div>`}}
+  let next="";if(live&&mineP&&mineP.paid&&mineP.here){const g=on.find(x=>x.p.includes(me));if(g)next=`<div class="note"><b>You're on Court ${g.c} now.</b> Enter the score when the game ends.</div>`;else{const k=q.findIndex(x=>x.p.includes(me));next=k>=0?`<div class="note"><b>Your next game is #${k+1} in the queue.</b>${k<e.courts?" Get ready.":""}</div>`:`<div class="note">You've played all your games. Waiting for the others to finish.</div>`}}
   // payment / join area
   let join="";
   if(!mineP&&(e.st==="open"||live))join=full?`<p class="m">This open play is full.</p>`:`<button class="btn big ball" data-a="opJoin" data-v="${e.id}">Join${e.price?", "+money(e.price):""}</button>`;
   else if(mineP&&!mineP.paid)join=`<div class="note warn"><b>Payment needed to play.</b> Send ${money(e.price)} to the host: <b>${esc(e.pay||"ask the host")}</b>. Then send the reference number so the host can confirm you.</div>${mineP.ref?`<p class="m">Reference <b>${esc(mineP.ref)}</b> sent. Waiting for the host to confirm.</p>`:`<input id="or${e.id}" placeholder="E-wallet reference no."><button class="btn" data-a="opRef" data-v="${e.id}">Send reference</button>`}`;
-  else if(mineP&&!e.isHost&&mineP.paid)join=`<span class="chip on">You're in</span>`;
+  else if(mineP&&!e.isHost&&mineP.paid&&mineP.here)join=`<span class="chip on">You're in</span>`;
+  const ciBox=mineP&&!e.isHost&&e.qr&&!mineP.here&&(e.st==="open"||live)?`<div class="note warn">${mineP.out?"<b>The host checked you out.</b> Scan the host's QR code again to rejoin the games.":"<b>Check in to play.</b> Scan the QR code on the host's phone with your camera."} Camera not working? Type the code shown there.</div><input id="oc${e.id}" placeholder="Check-in code" autocapitalize="characters" autocomplete="off"><button class="btn" data-a="opIn" data-v="${e.id}">Check in</button>`:"";
+  const hostQr=e.isHost&&e.qr&&(e.st==="open"||live)?`<div class="sheet"><h2>Check-in code</h2><p class="sub">Players scan this with their phone camera when they arrive. It changes every minute, so keep this screen open.</p>${qrFor==="o:"+e.id?`<div id="qrbox" class="qr"></div><p class="big">${esc(qrCode)}</p><button class="btn g" data-a="qrOff">Hide</button>`:`<button class="btn" data-a="qrOn" data-v="o:${e.id}">Show check-in code</button>`}</div>`:"";
   const leave=mineP&&!e.isHost&&(e.st==="open"||live)?`<button class="btn w" data-a="opLeave" data-v="${e.id}">Leave</button>`:"";
   const info=`<div class="sheet"><h2>${esc(e.title)}</h2><p class="sub"><span class="tag">${OPST[e.st]}</span> <span class="chip${e.mode==="ranked"?" on":""}">${e.mode==="ranked"?"Ranked game":"Casual game"}</span> Hosted by ${esc(e.hn)}${e.cn?` for <button class="linkbtn" data-a="club" data-v="${e.club}">${esc(e.cn)}</button>`:""}</p>
   <p class="m">${e.mode==="ranked"?(done?(e.applied?"Ratings were updated from this session's games.":"This session ended without rated games."):"Scores here count toward club ratings when the host ends the session."):"Casual: scores here never change ratings."}</p>
-  ${e.desc?`<p>${br(e.desc)}</p>`:""}<p class="m">${esc(e.loc)}<br>${when(e.ts)}, ${e.dur} min<br>${money(e.price)} per player, ${e.pl.filter(p=>!p.left).length}/${e.cap} joined, ${e.courts} court${e.courts===1?"":"s"}, ${e.rounds} games each</p>${join}${leave}</div>`;
+  ${e.desc?`<p>${br(e.desc)}</p>`:""}<p class="m">${esc(e.loc)}<br>${when(e.ts)}, ${e.dur} min<br>${money(e.price)} per player, ${e.pl.filter(p=>!p.left).length}/${e.cap} joined, ${e.courts} court${e.courts===1?"":"s"}, ${e.rounds} games each</p>${join}${ciBox}${leave}</div>`;
   const extra=`<p class="m">${e.courts} court${e.courts===1?"":"s"}, ${e.rounds} games each.</p><button class="btn g" data-a="opCourt" data-v="${e.id}"${e.courts>=10?" disabled":""}>Add a court</button><button class="btn g" data-a="opMore" data-v="${e.id}"${e.rounds>=20?" disabled":""}>Add 1 game each</button>`;
-  const host=e.isHost&&(e.st==="open"||live)?`<div class="sheet"><h2>Host controls</h2>${e.st==="open"?`<p class="sub">${paidN} paid player${paidN===1?"":"s"}. You need at least ${e.mode==="ranked"?8:4}. Latecomers can still join and pay after you start.</p><button class="btn big" data-a="opStart" data-v="${e.id}"${paidN<(e.mode==="ranked"?8:4)?" disabled":""}>Start games</button><button class="btn w" data-a="opCancel" data-v="${e.id}">Cancel open play</button>${extra}`
-    :`<p class="sub">Each paid player is scheduled for ${e.rounds} games, shuffled at random. New paid players are added to the queue automatically.</p><button class="btn g" data-a="opShuffle" data-v="${e.id}">Re-randomize queue</button><button class="btn w" data-a="opEnd" data-v="${e.id}">End open play</button>${extra}`}</div>`:"";
+  const host=e.isHost&&(e.st==="open"||live)?`<div class="sheet"><h2>Host controls</h2>${e.st==="open"?`<p class="sub">${paidN} player${paidN===1?"":"s"} paid and checked in. You need at least ${e.mode==="ranked"?8:4}. Latecomers can still join, pay and check in after you start.</p><button class="btn big" data-a="opStart" data-v="${e.id}"${paidN<(e.mode==="ranked"?8:4)?" disabled":""}>Start games</button><button class="btn w" data-a="opCancel" data-v="${e.id}">Cancel open play</button>${extra}`
+    :`<p class="sub">Each player who paid and checked in is scheduled for ${e.rounds} games, shuffled at random. Late arrivals are added to the queue automatically.</p><button class="btn g" data-a="opShuffle" data-v="${e.id}">Re-randomize queue</button><button class="btn w" data-a="opEnd" data-v="${e.id}">End open play</button>${extra}`}</div>`:"";
   const scoreIn=g=>{const A=g.p.slice(0,2),B=g.p.slice(2),can=e.isHost||g.p.includes(me);return`<div class="row" style="display:block"><b>Court ${g.c}</b> <span class="m">game #${g.n}</span><div class="court"><div>${team(A)}</div><span class="vs">vs</span><div>${team(B)}</div></div>
   ${can?`<div class="score"><div class="pick"><span class="m">${esc(nm(A[0]))} and ${esc(nm(A[1]))}</span><input id="gsa${g.id}" type="number" inputmode="numeric" min="0" max="40" placeholder="-"></div><div class="pick"><span class="m">${esc(nm(B[0]))} and ${esc(nm(B[1]))}</span><input id="gsb${g.id}" type="number" inputmode="numeric" min="0" max="40" placeholder="-"></div></div><button class="btn" data-a="opScore" data-v="${g.id}">Save score</button>${e.isHost?`<button class="btn w" data-a="opVoid" data-v="${g.id}">Take off court</button>`:""}`:`<p class="m">Playing now.</p>`}</div>`};
   const courts=live?`<div class="sheet"><h2>On court</h2>${next}${on.length?on.map(scoreIn).join(""):`<p class="empty">No game on court right now.</p>`}</div>
   <div class="sheet"><h2>Queue</h2><p class="sub">${q.length} game${q.length===1?"":"s"} waiting, in random order. ${e.finished} finished.</p>${q.length?`<ol class="queue">${q.slice(0,8).map((g,i)=>`<li class="${g.p.includes(me)?"me":""}"><span class="rk">${i+1}</span><div class="g1">${esc(nm(g.p[0]))} and ${esc(nm(g.p[1]))}<div class="m">vs ${esc(nm(g.p[2]))} and ${esc(nm(g.p[3]))}</div></div>${g.p.includes(me)?`<span class="chip on">You</span>`:""}</li>`).join("")}</ol>${q.length>8?`<p class="m">+${q.length-8} more</p>`:""}`:`<p class="empty">Queue is empty.</p>`}</div>`:"";
   const rank=live||done?`<div class="sheet"><h2>${done?"Final ranking":"Ranking"}</h2><p class="sub">Most wins first, then point difference.</p>${e.rank.some(r=>r.g)?opts(e.rank,(r,i)=>`<div class="row"><span class="rk${i<3&&r.g?" top":""}">${i+1}</span>${av(r.n)}<div class="g1"><span class="n">${esc(r.n)}${r.id===me?" (you)":""}</span><div class="m">${r.g} game${r.g===1?"":"s"}</div></div><div class="rv">${r.w}-${r.l}<span>${r.pf-r.pa>=0?"+":""}${r.pf-r.pa} pts</span></div></div>`):`<p class="empty">The ranking appears after the first score.</p>`}</div>`:"";
   const results=(live||done)&&fin.length?`<div class="sheet"><h2>Finished games</h2>${opts(fin.slice(0,15),g=>`<div class="row"><div class="g1">${esc(nm(g.p[0]))} and ${esc(nm(g.p[1]))} <b>${g.sa}</b><div class="m">vs ${esc(nm(g.p[2]))} and ${esc(nm(g.p[3]))} <b>${g.sb}</b></div></div>${e.isHost&&live?`<div style="width:100%"><input class="s" id="gsa${g.id}" type="number" placeholder="${g.sa}"><input class="s" id="gsb${g.id}" type="number" placeholder="${g.sb}"><button class="btn g" data-a="opScore" data-v="${g.id}">Fix score</button></div>`:""}</div>`)}</div>`:"";
-  const ppl=`<div class="sheet"><h2>Players</h2>${e.pl.filter(p=>!p.left).map(p=>`<div class="row">${av(p.n)}<div class="g1"><span class="n">${esc(p.n)}${p.me?" (you)":""}${p.id===e.host?" (host)":""}</span><div class="m">${p.paid?"Paid, in the games":p.ref?"Reference "+esc(p.ref)+", waiting to be confirmed":"Not paid yet"}</div></div>${e.isHost&&p.id!==e.host&&(e.st==="open"||live)?`<div><button class="btn ${p.paid?"":"ball"}" data-a="opPaid" data-v="${p.id}">${p.paid?"Paid":"Mark paid"}</button><button class="btn g" data-a="opKick" data-v="${p.id}">Remove</button></div>`:`<button class="btn g" data-a="prof" data-v="${p.id}">Profile</button>`}</div>`).join("")}</div>`;
-  return head+`<div class="who"><div><b>${esc(e.title)}</b><div class="lv">${esc(e.loc)}</div></div></div></div>${info}${(e.isHost||mineP)?gcBox("op",e.id,"Everyone in this open play can read and write here. Use it to coordinate courts, timing and payments."):""}${host}${courts}${rank}${results}${ppl}`;
+  const ppl=`<div class="sheet"><h2>Players</h2>${e.pl.filter(p=>!p.left).map(p=>`<div class="row">${av(p.n)}<div class="g1"><span class="n">${esc(p.n)}${p.me?" (you)":""}${p.id===e.host?" (host)":""}</span><div class="m">${p.paid?(p.here?"Paid, in the games":p.out?"Paid, checked out":"Paid, not checked in yet"):p.ref?"Reference "+esc(p.ref)+", waiting to be confirmed":"Not paid yet"}${e.qr&&!p.paid?(p.here?", checked in":", not checked in"):""}</div></div>${e.isHost&&p.id!==e.host&&(e.st==="open"||live)?`<div><button class="btn ${p.paid?"":"ball"}" data-a="opPaid" data-v="${p.id}">${p.paid?"Paid":"Mark paid"}</button>${e.qr?(p.here?`<button class="btn g" data-a="opOut" data-v="${p.id}">Check out</button>`:`<button class="btn g" data-a="opArrive" data-v="${p.id}">Check in</button>`):""}<button class="btn g" data-a="opKick" data-v="${p.id}">Remove</button></div>`:`<button class="btn g" data-a="prof" data-v="${p.id}">Profile</button>`}</div>`).join("")}${e.isHost?e.pl.filter(p=>p.left&&p.cr).map(p=>`<div class="row">${av(p.n)}<div class="g1"><span class="n">${esc(p.n)}</span><div class="m">Left after paying. Refund them, or they can rejoin without paying again.</div></div><button class="btn g" data-a="opRefund" data-v="${p.id}">Refunded</button></div>`).join(""):""}</div>`;
+  return head+`<div class="who"><div><b>${esc(e.title)}</b><div class="lv">${esc(e.loc)}</div></div></div></div>${info}${hostQr}${(e.isHost||mineP)?gcBox("op",e.id,"Everyone in this open play can read and write here. Use it to coordinate courts, timing and payments."):""}${host}${courts}${rank}${results}${ppl}`;
 }
 function quests(){
   return `<div class="sheet"><h2>Daily home quests</h2><p class="sub">Drills you do on your own. Claim each once a day for XP.</p>${opts(S.today,q=>`<div class="row"><div class="g1">${esc(q.t)}<div class="m">+${q.xp} XP</div></div>
@@ -927,6 +980,9 @@ function me(){
   return hero({...u,n:u.username,t:u.tier,coach:u.role==="certified_coach"},{self:1})+`
   <div class="sheet"><h2>Profile picture</h2><p class="sub">Other players see it on your profile, rankings and chats.</p>
   <div class="pfp">${av(u.username,2,u.av||0)}<div class="g1"><button class="btn" data-a="avPick">${u.av?"Change photo":"Upload photo"}</button>${u.av?`<button class="btn w" data-a="avRemove">Remove</button>`:""}<p class="m">JPEG, PNG or WebP. You can move and zoom it before saving.</p></div></div></div>
+  <div class="sheet"><h2>Cover photo</h2><p class="sub">A banner behind your name. Other players see it when they open your profile.</p>
+  <div class="cvp">${u.cv?`<img src="/api?cover=${encodeURIComponent(u.username)}&v=${u.cv}" alt="Your cover photo" decoding="async" onerror="this.parentNode.textContent='Cover photo unavailable'">`:`<span>No cover photo yet</span>`}</div>
+  <button class="btn" data-a="cvPick">${u.cv?"Change cover photo":"Upload cover photo"}</button>${u.cv?`<button class="btn w" data-a="cvRemove">Remove</button>`:""}<p class="m">JPEG, PNG or WebP. You can move and zoom it before saving.</p></div>
   <div class="sheet"><h2>My clubs</h2>${clubChips(S.myClubs)}${(S.myClubs||[]).length?"":`<button class="btn" data-a="goClubs">Find or create a club</button>`}</div>
   <div class="sheet"><h2>Match history</h2>${histRows(mp&&mp!=="loading"&&!mp.err?mp.hist:null)}</div>
   <div class="sheet"><h2>Level ${L}</h2><div class="xp"><i style="width:${Math.round((u.xp-lo)/(hi-lo)*100)}%"></i></div>
@@ -948,15 +1004,15 @@ function cal(){
   const list=S.sessions.filter(x=>!calDay||dk(x.ts)===calDay);
   return `<div class="sheet"><h2>Lessons and clinics</h2><p class="sub">Book a certified coach for the next two weeks.</p><div class="days"><button class="${!calDay?"on":""}" data-a="day" data-v=""><span>All</span><b>${S.sessions.length}</b><i></i></button>${days.map(d=>{const k=dk(d.getTime());return `<button class="${calDay===k?"on":""}" data-a="day" data-v="${k}"><span>${d.toLocaleDateString([],{weekday:"short"})}</span><b>${d.getDate()}</b><i>${n[k]?n[k]+" open":""}</i></button>`}).join("")}</div>
   ${list.length?opts(list,x=>`<div class="row"><div class="g1"><span class="n">${esc(x.title)}</span><div class="m">${esc(x.coach)}, ${x.kind}, ${x.dur} min, ${when(x.ts)}<br>${money(x.price)}, ${x.left} spot${x.left===1?"":"s"} left</div></div>${x.mine?`<span class="tag">Booked</span>`:x.own?"":`<button class="btn" ${x.left<1?"disabled":""} data-a="book" data-v="${x.id}">Book</button>`}</div>`):`<p class="empty">No sessions ${calDay?"on that day. Try another day":"published yet"}.</p>`}</div>
-  <div class="sheet"><h2>My bookings</h2>${S.bookings.length?opts(S.bookings.slice().reverse(),b=>`<div class="row"><div class="g1"><span class="n">${esc(b.title)}</span> <span class="m">with ${esc(b.cn)}</span><div class="m">${when(b.ts)}, ${money(b.price)}, ${b.paid?"paid":"unpaid"}<br>Check-in code <b>${b.id}</b>${!b.paid&&b.price&&b.status!=="cancelled"?`<br>Pay by: ${esc(b.pay||"ask your coach")}<br>${b.ref?`Reference ${esc(b.ref)} sent, waiting for your coach`:`<input id="rf${b.id}" placeholder="E-wallet reference no."><button class="btn g" data-a="ref" data-v="${b.id}">Send reference</button>`}`:""}</div></div><span class="tag">${b.status}</span>${b.status==="booked"?`<div style="width:100%"><button class="btn g" data-a="ics" data-v="${b.id}">Add to calendar</button><button class="btn w" data-a="cancel" data-v="${b.id}">Cancel</button></div>`:""}</div>`):`<p class="empty">Nothing booked yet.</p>`}<p class="m">Add to calendar saves the session to your phone with alerts 1 day and 2 hours before.</p></div>`;
+  <div class="sheet"><h2>My bookings</h2>${S.bookings.length?opts(S.bookings.slice().reverse(),b=>`<div class="row"><div class="g1"><span class="n">${esc(b.title)}</span> <span class="m">with ${esc(b.cn)}</span><div class="m">${when(b.ts)}, ${money(b.price)}, ${b.paid?"paid":"unpaid"}${b.status==="booked"&&b.sid?`<br>Scan the QR code on your coach's phone to check in. Camera not working? Type the code from their screen.<br><input id="bc${b.sid}" placeholder="Check-in code" autocapitalize="characters" autocomplete="off"><button class="btn" data-a="bkIn" data-v="${b.sid}">Check in (+40 XP)</button>`:""}<br>Booking code <b>${b.id}</b>${!b.paid&&b.price&&b.status!=="cancelled"?`<br>Pay by: ${esc(b.pay||"ask your coach")}<br>${b.ref?`Reference ${esc(b.ref)} sent, waiting for your coach`:`<input id="rf${b.id}" placeholder="E-wallet reference no."><button class="btn g" data-a="ref" data-v="${b.id}">Send reference</button>`}`:""}</div></div><span class="tag">${b.status}</span>${b.status==="booked"?`<div style="width:100%"><button class="btn g" data-a="ics" data-v="${b.id}">Add to calendar</button><button class="btn w" data-a="cancel" data-v="${b.id}">Cancel</button></div>`:""}</div>`):`<p class="empty">Nothing booked yet.</p>`}<p class="m">Add to calendar saves the session to your phone with alerts 1 day and 2 hours before.</p></div>`;
 }
 function coach(){
   const c=S.coach,nr=c.students.filter(s=>s.r==null);
   return `<div class="sheet"><h2>Publish a session</h2><p class="sub">Your schedule is listed by day below. Overlapping sessions are blocked.</p>
   <select id="sk"><option value="lesson">Private lesson</option><option value="clinic">Clinic</option></select><input id="sw" type="datetime-local"><input class="w100" id="st" placeholder="Title, e.g. Dink basics">
   <div class="score"><label class="m">Price ₱<br><input class="s" id="sp" type="number" min="0" value="800"></label><label class="m">Spots (clinics)<br><input class="s" id="sc" type="number" min="2" value="8"></label><label class="m">Minutes<br><input class="s" id="sd" type="number" min="30" max="240" value="60"></label></div><button class="btn" data-a="addSession">Publish session</button>
-  ${(()=>{let last="";return c.sessions.map(x=>{const d=dk(x.ts),h=d!==last?(last=d,`<h3>${new Date(x.ts).toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"})}</h3>`):"",w=c.who[x.id]||[];return h+`<div class="row"><div class="g1"><span class="n">${tm(x.ts)} to ${tm(x.ts+x.dur*6e4)}</span> ${esc(x.title)}<div class="m">${x.kind}, ${money(x.price)}, ${x.booked}/${x.cap} booked${w.length?" ("+w.map(esc).join(", ")+")":""}</div></div><button class="btn w" data-a="cancelSession" data-v="${x.id}">Cancel</button></div>`}).join("")})()}</div>
-  <div class="sheet"><h2>Check in a student</h2><p class="sub">Tap Check in next to the student, or type the code from their Book tab.</p><input id="bid" placeholder="Booking code"><button class="btn" data-a="attend">Check in (+40 XP)</button>
+  ${(()=>{let last="";return c.sessions.map(x=>{const d=dk(x.ts),h=d!==last?(last=d,`<h3>${new Date(x.ts).toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"})}</h3>`):"",w=c.who[x.id]||[];return h+`<div class="row"><div class="g1"><span class="n">${tm(x.ts)} to ${tm(x.ts+x.dur*6e4)}</span> ${esc(x.title)}<div class="m">${x.kind}, ${money(x.price)}, ${x.booked}/${x.cap} booked${w.length?" ("+w.map(esc).join(", ")+")":""}</div></div><button class="btn g" data-a="qrOn" data-v="b:${x.id}">Check-in code</button><button class="btn w" data-a="cancelSession" data-v="${x.id}">Cancel</button></div>`}).join("")})()}</div>
+  <div class="sheet"><h2>Check in a student</h2><p class="sub">Students scan your check-in code with their phone camera. Open it with Check-in code next to the session above. If a phone can't scan, tap Check in next to the student, or type the code from their Book tab.</p>${qrFor&&qrFor[0]==="b"?`<div class="note"><b>${esc((c.sessions.find(x=>x.id===qrFor.slice(2))||{}).title||"Session")}</b>: the code changes every minute.</div><div id="qrbox" class="qr"></div><p class="big">${esc(qrCode)}</p><button class="btn g" data-a="qrOff">Hide</button>`:""}<input id="bid" placeholder="Booking code"><button class="btn" data-a="attend">Check in (+40 XP)</button>
   ${opts(c.bookings.filter(b=>b.status==="booked").slice(0,8),b=>`<div class="row">${av(b.pn)}<div class="g1"><span class="n">${esc(b.pn)}</span><div class="m">${esc(b.title||b.kind)}, ${when(b.ts)}, code ${b.id}</div></div><button class="btn g" data-a="attend" data-v="${b.id}">Check in</button></div>`)}</div>
   <div class="sheet"><h2>Assess a student</h2>${c.students.length?`<select class="w100" id="stu">${opts(c.students,s=>`<option value="${s.id}">${esc(s.n)}, ${fmtR(s.r)}, ${S.tiers[s.t]}</option>`)}</select>
   <h3>Skill badge</h3><select id="bdg">${opts(Object.entries(S.badgeDefs),([k,d])=>`<option value="${k}">${esc(d.n)}</option>`)}</select><button class="btn" data-a="assess" data-v="1">Pass</button><button class="btn g" data-a="assess" data-v="0">Not yet</button>
@@ -971,12 +1027,10 @@ function admin(){
   const a=S.admin,c=a.cfg;
   return `<div class="sheet"><h2>Live and disputed matches</h2>${a.disputes.length?opts(a.disputes,d=>`<div class="row"><div class="g1"><span class="n">${esc(d.court)}</span> <span class="tag">${d.st}, ${d.age} min</span><div>${d.A.map(esc).join(" and ")} vs ${d.B.map(esc).join(" and ")}</div><div class="m">${d.sub.map(esc).join("; ")||"No scores entered"}</div></div>
   <div style="width:100%">${d.st==="disputed"?`<input class="s" id="ra${d.id}" type="number" placeholder="Left"><input class="s" id="rb${d.id}" type="number" placeholder="Right"><button class="btn" data-a="resolve" data-v="${d.id}">Set result</button>`:""}<button class="btn w" data-a="voidMatch" data-v="${d.id}">Void</button></div></div>`):`<p class="empty">No live matches.</p>`}</div>
-  <div class="sheet"><h2>Check-in screen</h2><p class="sub">Show this on a tablet at the front desk. The code changes every minute.</p>${showQr?`<div id="qrbox" class="qr"></div><p class="big">${esc(qrCode)}</p><button class="btn g" data-a="qrOff">Hide</button>`:`<button class="btn" data-a="qrOn">Show check-in code</button>`}</div>
   <div class="sheet"><h2>Flagged repeat groups</h2><p class="sub">The same players finishing again and again within 12 hours. Their XP and rating changes are reduced.</p>${(a.flags||[]).length?opts(a.flags,f=>`<div class="row m">${f.names.map(esc).join(", ")}</div>`):`<p class="empty">Nothing flagged.</p>`}</div>
   <div class="sheet"><h2>Facility</h2><label class="field" for="cc">Courts, comma separated</label><input class="w100" id="cc" value="${esc(c.courts.join(", "))}">
   <label class="field">Geofence latitude, longitude and radius in meters (blank turns it off)</label><input class="s" style="width:110px" id="cl" value="${c.lat??""}" placeholder="Latitude"><input class="s" style="width:110px" id="cn" value="${c.lng??""}" placeholder="Longitude"><input class="s" id="cr" value="${c.rad}" placeholder="Radius">
   <label class="field" for="cm">Minimum minutes before a score can be entered</label><input class="s" id="cm" value="${c.minMin}">
-  <label class="chk"><input type="checkbox" id="cq" ${c.qr?"checked":""}> Require the front-desk QR code to check in (replaces GPS)</label>
   <label class="field" for="ct">Club time zone, used for the daily quest reset. This device: ${Intl.DateTimeFormat().resolvedOptions().timeZone}</label><input class="w100" id="ct" value="${esc(c.tz)}" placeholder="Asia/Manila"><button class="btn" data-a="setCfg">Save settings</button></div>
   <div class="sheet"><h2>Coach invites</h2><p class="sub">Single-use tokens. Give one to each verified coach.</p><button class="btn" data-a="invite">Create invite token</button>${a.cfg.inv.map(t=>`<div class="row"><code>${t}</code></div>`).join("")}</div>
   <div class="sheet"><h2>Users</h2>${opts(a.users||[],u=>`<div class="row">${av(u.username)}<div class="g1"><span class="n">${esc(u.username)}</span>${u.disabled?` <span class="tag">disabled</span>`:""}<div class="m">${fmtR(u.r)}, ${u.rel|0}% reliable, ${u.xp} XP</div></div>
@@ -1009,10 +1063,10 @@ function draw(poll){
   if(!need&&!view&&cl&&!CD[cl])clubLoad(cl);
   if(!need&&!view&&!cl&&!ov&&((tab==="players"&&pv==="clubs")||tab==="club")&&(!CB||CBs))clubsLoad();
   if(!need&&!view){const g=gcCur();if(g){const okc=g[0]==="club"?(CD[cl]&&CD[cl]!=="loading"&&CD[cl].joined):(OD[ov]&&(OD[ov].isHost||OD[ov].joined));if(okc&&!GC[gk(g[0],g[1])])gcLoad(g[0],g[1])}}
-  if(showQr&&tab==="admin"&&window.QRCode){const q=document.getElementById("qrbox");if(q&&!q.firstChild)new QRCode(q,{text:qrText,width:200,height:200})}
+  if(qrFor&&qrText&&window.QRCode){const q=document.getElementById("qrbox");if(q&&!q.firstChild)new QRCode(q,{text:qrText,width:200,height:200})}
 }
 const pqs=new URLSearchParams(location.search).get("ci");if(pqs){sessionStorage.setItem("ci",pqs);history.replaceState(null,"",location.pathname)}
-setInterval(()=>{if(T&&showQr&&tab==="admin"&&!document.hidden)refreshQr(true)},30000);
+setInterval(()=>{if(T&&qrFor&&!document.hidden)refreshQr(true)},30000);
 if(T){draw();showLoader("Logging in");load().finally(()=>hideLoader(500))}else{draw();gInit()}
 setInterval(()=>{if(T&&S&&S.match&&tab==="play"&&!view&&!document.hidden)draw(true)},10000);
 let tick=0;setInterval(()=>{tick++;if(T&&!document.hidden&&navigator.onLine&&!view&&(tab==="play"||tab==="friends"||tab==="open"||tick%3===0))load(true)},15000);
